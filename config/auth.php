@@ -16,7 +16,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
+        'guard' => env('AUTH_GUARD', 'api'),
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
@@ -40,6 +40,10 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
+            'provider' => 'users',
+        ],
+        'api' => [
+            'driver' => 'jwt',
             'provider' => 'users',
         ],
     ],
@@ -113,5 +117,16 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Rate Limiting
+    |--------------------------------------------------------------------------
+    */
+    'rate_limiting' => [
+        'register' => (int) env('AUTH_RATE_LIMIT_REGISTER', 3),
+        'login' => (int) env('AUTH_RATE_LIMIT_LOGIN', 3),
+        'refresh' => (int) env('AUTH_RATE_LIMIT_REFRESH', 3),
+    ],
 
 ];
