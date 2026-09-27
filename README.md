@@ -1,58 +1,315 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# HelpDesk
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A backend-first HelpDesk REST API built with **PHP 8.5**, **Laravel 13**, **MySQL 8.4 LTS**, and **Redis**.
 
-## About Laravel
+The project is primarily a practical learning project for revisiting modern PHP, Laravel, REST API design, database design, Redis, testing, SOLID principles, and design patterns.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Project Vision
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The initial application is a **single-tenant HelpDesk**.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The longer-term goal is to evolve it into a **multi-tenant SaaS HelpDesk** without prematurely introducing SaaS complexity into the first implementation.
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+                    HelpDesk
+                       |
+              ┌────────┴────────┐
+              |                 |
+       REST API Backend    Future Frontends
+              |             /    |    \
+              |          Blade React Vue
+              |
+       ┌──────┼──────┐
+       |      |      |
+     MySQL  Redis  Laravel
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Technology Stack
 
-## Contributing
+| Technology | Purpose |
+|---|---|
+| PHP 8.5 | Application language |
+| Laravel 13 | Backend/API framework |
+| MySQL 8.4 LTS | Primary relational database |
+| Redis | Queues, caching, and appropriate distributed coordination |
+| Laravel Boost | Development/AI coding assistance |
+| Laravel AI SDK | Planned future AI features |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Current Focus
 
-## Code of Conduct
+The current focus is **backend implementation only**.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### In scope
 
-## Security Vulnerabilities
+- REST API
+- Authentication and authorization
+- Users and roles
+- Tickets
+- Ticket messages
+- Categories
+- Ticket assignment
+- Ticket status lifecycle
+- Ticket status history
+- Audit logging
+- Idempotent API operations
+- Events and listeners
+- Jobs and queues
+- Redis
+- Notifications
+- Automated tests
+- API documentation
+- Production-oriented backend practices
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Deferred
 
-## License
+- Blade frontend
+- React frontend
+- Vue frontend
+- Multi-tenancy implementation
+- SaaS billing/subscriptions
+- Advanced AI functionality
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Planned Design Patterns
+
+Patterns will be introduced only when they solve a real problem.
+
+- Strategy
+- Factory
+- State
+- Chain of Responsibility
+- Command / Action
+- Adapter
+- Decorator
+- Events / Observer
+- Specification
+- Builder
+- Repository where genuinely justified
+
+Example:
+
+```text
+TicketAssignmentStrategy
+├── RoundRobinAssignment
+├── LeastBusyAgentAssignment
+└── SkillBasedAssignment
+```
+
+## Core Domain
+
+The initial domain is expected to include:
+
+```text
+User
+Category
+Ticket
+TicketMessage
+TicketStatusHistory
+AuditLog
+Skill
+UserSkill
+TicketSkill
+AssignmentCursor
+```
+
+Not every table will be introduced immediately. The schema will evolve with the features.
+
+## Ticket Lifecycle
+
+The initial lifecycle is expected to be:
+
+```text
+OPEN
+  |
+  v
+IN_PROGRESS
+  |
+  v
+WAITING_FOR_CUSTOMER
+  |
+  v
+IN_PROGRESS
+  |
+  v
+RESOLVED
+  |
+  v
+CLOSED
+```
+
+Valid transitions will eventually be enforced as domain rules rather than relying only on controller conditionals.
+
+## Idempotency
+
+Ticket creation will support an idempotency key.
+
+For the current single-tenant implementation:
+
+```text
+UNIQUE(idempotency_key)
+```
+
+When the application becomes multi-tenant, this will likely become:
+
+```text
+UNIQUE(tenant_id, idempotency_key)
+```
+
+A dedicated idempotency table may be introduced later if multiple API operations need idempotency.
+
+## Redis
+
+Redis is intentionally used for practical backend scenarios:
+
+```text
+Redis
+├── Queues
+│   ├── notification jobs
+│   └── background processing
+│
+├── Cache
+│   └── appropriate read-heavy data
+│
+└── Locks
+    └── concurrency-sensitive operations
+```
+
+Redis will not replace MySQL as the source of truth for transactional business data.
+
+## AI Roadmap
+
+Laravel AI SDK will be introduced after the core HelpDesk is understood and working.
+
+Potential features:
+
+- Ticket classification
+- Ticket summarization
+- Suggested replies
+- Knowledge-base search
+- Embeddings/RAG
+- HelpDesk AI agent and tools
+
+AI should assist the application and its users rather than replace core deterministic business rules.
+
+## Future Multi-Tenant SaaS
+
+The future architecture may look like:
+
+```text
+SaaS Platform
+│
+├── Tenant A
+│   ├── Users
+│   ├── Agents
+│   └── Tickets
+│
+├── Tenant B
+│   ├── Users
+│   ├── Agents
+│   └── Tickets
+│
+└── Tenant C
+    ├── Users
+    ├── Agents
+    └── Tickets
+```
+
+The current application remains single-tenant so that we can focus on learning the HelpDesk domain and Laravel fundamentals first.
+
+Future concerns include:
+
+- Tenant isolation
+- Tenant-aware authorization
+- Tenant-aware cache keys
+- Tenant-aware queues
+- Tenant-aware files
+- Tenant-specific limits
+- Plans/subscriptions
+- Billing
+- AI usage tracking
+
+## Documentation
+
+Detailed project context is maintained in:
+
+```text
+.ai/
+└── SKILL.md
+
+docs/
+├── PROJECT.md
+├── ARCHITECTURE.md
+├── DATABASE.md
+├── PATTERNS.md
+├── DECISIONS.md
+└── ROADMAP.md
+```
+
+### Documentation purpose
+
+- `SKILL.md` — instructions for AI/development assistance
+- `PROJECT.md` — project purpose and scope
+- `ARCHITECTURE.md` — architectural direction
+- `DATABASE.md` — database design
+- `PATTERNS.md` — design-pattern learning plan
+- `DECISIONS.md` — important architectural decisions
+- `ROADMAP.md` — current progress and next steps
+
+## Development Philosophy
+
+This project is intentionally not a "CRUD tutorial".
+
+For significant features, we want to understand:
+
+```text
+Requirement
+    ↓
+Domain model
+    ↓
+Database design
+    ↓
+API contract
+    ↓
+Business rules
+    ↓
+Authorization
+    ↓
+Implementation
+    ↓
+Tests
+    ↓
+Performance / concurrency
+    ↓
+Documentation
+```
+
+Patterns and abstractions should be introduced because they solve a problem—not simply because they exist.
+
+## Roadmap
+
+1. Project foundation
+2. Authentication and users
+3. Core ticketing
+4. Ticket conversations
+5. Ticket lifecycle
+6. Assignment strategies
+7. Audit and notifications
+8. Redis and queues
+9. API robustness and idempotency
+10. AI capabilities
+11. Multi-tenant SaaS
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the detailed roadmap.
+
+## Current Milestone
+
+**Phase 0 — Project foundation**
+
+The Laravel 13 project has been created locally.
+
+Next:
+
+1. Configure MySQL
+2. Configure Redis
+3. Establish API conventions
+4. Design initial migrations
+5. Implement the first core domain models
