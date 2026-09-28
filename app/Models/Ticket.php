@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\States\Ticket\TicketState;
 use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -47,5 +48,20 @@ class Ticket extends Model
     public function assigne(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function state(): TicketState
+    {
+        return TicketState::for($this);
+    }
+
+    public function transitionTo(TicketStatus $targetStatus): self
+    {
+        return $this->state()->transitionTo($targetStatus);
     }
 }
