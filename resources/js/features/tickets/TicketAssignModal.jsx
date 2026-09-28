@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { useUiStore } from '@/stores/ui-store';
 import { extractApiErrors } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Select, Input } from '@/components/ui/Input';
-import { Cpu, UserCheck } from 'lucide-react';
+import { Select } from '@/components/ui/Input';
+import { Cpu, UserCheck, Users, AlertCircle } from 'lucide-react';
 
 export function TicketAssignModal({ isOpen, onClose, ticket }) {
     const queryClient = useQueryClient();
@@ -18,6 +18,28 @@ export function TicketAssignModal({ isOpen, onClose, ticket }) {
     const [agentId, setAgentId] = useState('');
     const [serverError, setServerError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
+
+    // Fetch active agents and admins for assignment dropdown
+    const { data: agentsData, isLoading: isLoadingAgents, isError: isAgentsError } = useQuery({
+        queryKey: queryKeys.users.agents,
+        queryFn: async () => {
+            const res = await apiClient.get('/agents');
+            return res.data?.data || res.data || [];
+        },
+        enabled: isOpen,
+    });
+
+    const agents = Array.isArray(agentsData) ? agentsData : [];
+
+    useEffect(() => {
+        if (isOpen && ticket) {
+            setMode('strategy');
+            setStrategy('round_robin');
+            setAgentId(ticket.assigned_to ? String(ticket.assigned_to) : '');
+            setServerError('');
+            setFieldErrors({});
+        }
+    }, [isOpen, ticket]);
 
     const assignMutation = useMutation({
         mutationFn: async ({ ticketId, payload }) => {
@@ -54,7 +76,16 @@ export function TicketAssignModal({ isOpen, onClose, ticket }) {
         e.preventDefault();
         setServerError('');
         setFieldErrors({});
-        const payload = mode === 'strategy' ? { strategy } : { assigned_to: parseInt(agentId, 10) };
+
+        if (mode === 'manual' && !agentId) {
+            setFieldErrors({ agent_id: 'Please select an agent to assign this ticket to.' });
+            return;
+        }
+
+        const payload = mode === 'strategy'
+            ? { strategy }
+            : { agent_id: parseInt(agentId, 10), assigned_to: parseInt(agentId, 10) };
+
         assignMutation.mutate({ ticketId: ticket.id, payload });
     };
 
@@ -101,7 +132,7 @@ export function TicketAssignModal({ isOpen, onClose, ticket }) {
                                 : 'text-slate-600 dark:text-slate-400'
                         }`}
                     >
-                        <UserCheck className="w-3.5 h-3.5" /> Direct Agent ID
+                        <UserCheck className="w-3.5 h-3.5" /> Pick Agent
                     </button>
                 </div>
 
@@ -129,19 +160,40 @@ export function TicketAssignModal({ isOpen, onClose, ticket }) {
                 ) : (
                     <div>
                         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                            Agent User ID *
+                            Select Agent *
                         </label>
-                        <Input
-                            type="number"
-                            placeholder="e.g. 2"
-                            value={agentId}
-                            onChange={(e) => {
-                                setAgentId(e.target.value);
-                                if (fieldErrors.assigned_to) setFieldErrors((prev) => ({ ...prev, assigned_to: undefined }));
-                            }}
-                            error={fieldErrors.assigned_to}
-                            required
-                        />
+                        {isLoadingAgents ? (
+                            <div className="py-2 text-xs text-slate-500">Loading agents...</div>
+                        ) : isAgentsError ? (
+                            <div className="text-xs text-red-500">Failed to load agents list.</div>
+                        ) : (
+                            <Select
+                                value={agentId}
+                                onChange={(e) => {
+                                    setAgentId(e.target.value);
+                                    if (fieldErrors.agent_id || fieldErrors.assigned_to) {
+                                        setFieldErrors((prev) => ({
+                                            ...prev,
+                                            agent_id: undefined,
+                                            assigned_to: undefined,
+                                        }));
+                                    }
+                                    if (serverError) setServerError('');
+                                }}
+                                error={fieldErrors.agent_id || fieldErrors.assigned_to}
+                                required
+                            >
+                                <option value="">-- Choose an Agent --</option>
+                                {agents.map((agent) => (
+                                    <option key={agent.id} value={agent.id}>
+                                        {agent.name || `${agent.first_name || ''} ${agent.last_name || ''}`.trim()} ({agent.role}) - {agent.email}
+                                    </option>
+                                ))}
+                            </Select>
+                        )}
+                        <p className="text-[11px] text-slate-500 mt-1">
+                            Directly assigns ticket responsibility to the chosen support agent.
+                        </p>
                     </div>
                 )}
 

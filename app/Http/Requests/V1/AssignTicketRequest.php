@@ -20,6 +20,15 @@ class AssignTicketRequest extends FormRequest
         return $ticket !== null && ($this->user()?->can('assign', $ticket) ?? false);
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('assigned_to') && ! $this->has('agent_id')) {
+            $this->merge([
+                'agent_id' => $this->input('assigned_to'),
+            ]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -32,11 +41,16 @@ class AssignTicketRequest extends FormRequest
                 Rule::exists('users', 'id'),
                 'required_without:strategy',
             ],
+            'assigned_to' => [
+                'nullable',
+                'integer',
+                Rule::exists('users', 'id'),
+            ],
             'strategy' => [
                 'nullable',
                 'string',
                 Rule::in(['round_robin', 'least_busy', 'skill_based']),
-                'required_without:agent_id',
+                'required_without_all:agent_id,assigned_to',
             ],
         ];
     }

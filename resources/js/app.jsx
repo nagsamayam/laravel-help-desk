@@ -14,6 +14,7 @@ import { TicketList } from '@/features/tickets/TicketList';
 import { TicketFilterBar } from '@/features/tickets/TicketFilterBar';
 import { TicketDetail } from '@/features/tickets/TicketDetail';
 import { TicketCreateModal } from '@/features/tickets/TicketCreateModal';
+import { TicketAssignModal } from '@/features/tickets/TicketAssignModal';
 import { AuditLogList } from '@/features/audit/AuditLogList';
 
 const queryClient = new QueryClient({
@@ -27,10 +28,17 @@ const queryClient = new QueryClient({
 });
 
 function MainDashboard() {
-    const { user, isAuthenticated, isAgent } = useAuthStore();
+    const { user, isAuthenticated, isAgent, fetchProfile } = useAuthStore();
     const [currentView, setCurrentView] = useState('tickets');
     const [selectedTicketId, setSelectedTicketId] = useState(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [assigningTicket, setAssigningTicket] = useState(null);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchProfile();
+        }
+    }, [isAuthenticated, fetchProfile]);
 
     const [filters, setFilters] = useState({
         search: '',
@@ -133,6 +141,7 @@ function MainDashboard() {
                                     isError={isError}
                                     error={error}
                                     onSelectTicket={handleSelectTicket}
+                                    onAssignTicket={(ticket) => setAssigningTicket(ticket)}
                                     onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
                                 />
                             </div>
@@ -146,6 +155,12 @@ function MainDashboard() {
             <TicketCreateModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
+            />
+
+            <TicketAssignModal
+                isOpen={Boolean(assigningTicket)}
+                onClose={() => setAssigningTicket(null)}
+                ticket={assigningTicket}
             />
 
             <ToastContainer />

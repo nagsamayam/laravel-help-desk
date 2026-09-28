@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\V1;
 
-use App\Models\TicketMessage;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin TicketMessage
+ * @mixin User
  */
-class TicketMessageResource extends JsonResource
+class UserResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -22,12 +22,11 @@ class TicketMessageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'ticket_id' => $this->ticket_id,
-            'user_id' => $this->user_id,
-            'message' => $this->message,
-            'body' => $this->message,
-            'is_internal' => (bool) $this->is_internal,
-            'user' => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'name' => $this->full_name,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'email' => $this->email,
+            'role' => $this->role?->value,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

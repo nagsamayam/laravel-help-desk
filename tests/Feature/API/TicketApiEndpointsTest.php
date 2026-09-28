@@ -188,6 +188,21 @@ it('assigns tickets directly or using assignment strategies', function (): void 
     // Agent Two had 0 active tickets, so agent2 is selected
     expect($ticket2->refresh()->assigned_to)->toBe($agent2->id);
 
+    // Direct assignment using assigned_to parameter alias on a third ticket
+    $ticket3 = Ticket::factory()->create([
+        'category_id' => $category->id,
+        'assigned_to' => null,
+    ]);
+
+    $this->actingAs($admin, 'api')
+        ->postJson("/api/v1/tickets/{$ticket3->id}/assign", [
+            'assigned_to' => $agent1->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.assigned_to', $agent1->id);
+
+    expect($ticket3->refresh()->assigned_to)->toBe($agent1->id);
+
     Event::assertDispatched(TicketAssigned::class);
 });
 
@@ -228,14 +243,15 @@ it('manages conversation messages with internal note visibility rules and events
         'customer_id' => $customer->id,
     ]);
 
-    // Customer adds public message
+    // Customer adds public message using 'body' parameter alias
     $this->actingAs($customer, 'api')
         ->postJson("/api/v1/tickets/{$ticket->id}/messages", [
-            'message' => 'Hello, I have an issue with login.',
+            'body' => 'Hello, I have an issue with login.',
         ])
         ->assertCreated()
         ->assertJsonPath('data.is_internal', false)
-        ->assertJsonPath('data.message', 'Hello, I have an issue with login.');
+        ->assertJsonPath('data.message', 'Hello, I have an issue with login.')
+        ->assertJsonPath('data.body', 'Hello, I have an issue with login.');
 
     // Agent adds internal note
     $this->actingAs($agent, 'api')
@@ -269,4 +285,30 @@ it('manages conversation messages with internal note visibility rules and events
         ->assertJsonCount(3, 'data');
 
     Event::assertDispatched(TicketMessageAdded::class);
+});
+
+it('allows agents and admins to fetch users and agents lists', function (): void {
+    $admin = User::factory()->create(['role' => Role::Admin]);
+    $agent = User::factory()->create(['role' => Role::Agent]);
+    $customer = User::factory()->create(['role' => Role::Customer]);
+
+    // Admin can fetch agents
+    $response = $this->actingAs($admin, 'api')
+        ->getJson('/api/v1/agents');
+
+    $response->assertOk()
+        ->assertJsonFragment(['email' => $admin->email])
+        ->assertJsonFragment(['email' => $agent->email])
+        ->assertJsonMissing(['email' => $customer->email]);
+
+    // Admin can fetch users
+    $this->actingAs($admin, 'api')
+        ->getJson('/api/v1/users')
+        ->assertOk()
+        ->assertJsonFragment(['email' => $customer->email]);
+
+    // Customer is forbidden from fetching agents or users
+    $this->actingAs($customer, 'api')
+        ->getJson('/api/v1/agents')
+        ->assertForbidden();
 });

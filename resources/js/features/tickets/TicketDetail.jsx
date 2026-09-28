@@ -124,7 +124,19 @@ export function TicketDetail({ ticketId, onBack }) {
                 </div>
 
                 <div>
-                    <span className="text-slate-400 font-medium block mb-1">Assigned To</span>
+                    <div className="flex items-center justify-between mb-1">
+                        <span className="text-slate-400 font-medium block">Assigned To</span>
+                        {isAgent() && (
+                            <button
+                                type="button"
+                                onClick={() => setIsAssignModalOpen(true)}
+                                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                                <UserCheck className="w-3 h-3" />
+                                {ticket.assigned_to ? 'Change' : 'Assign'}
+                            </button>
+                        )}
+                    </div>
                     <div className="font-semibold text-slate-800 dark:text-slate-200">
                         {ticket.assigned_to_user?.name || ticket.assigned_agent?.name || 'Unassigned'}
                     </div>

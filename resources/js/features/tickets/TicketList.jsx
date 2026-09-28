@@ -4,7 +4,8 @@ import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner, EmptyState } from '@/components/ui/LoadingSpinner';
 import { formatRelativeTime } from '@/lib/utils';
-import { Ticket, ChevronLeft, ChevronRight, User, AlertCircle, Clock } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
+import { Ticket, ChevronLeft, ChevronRight, UserCheck, AlertCircle, Clock } from 'lucide-react';
 
 export function TicketList({
     tickets,
@@ -13,8 +14,11 @@ export function TicketList({
     isError,
     error,
     onSelectTicket,
+    onAssignTicket,
     onPageChange,
 }) {
+    const { isAgent } = useAuthStore();
+
     if (isLoading) {
         return <LoadingSpinner text="Fetching tickets..." size="lg" />;
     }
@@ -49,7 +53,8 @@ export function TicketList({
                         <TableHead className="w-32">Status</TableHead>
                         <TableHead className="w-28">Priority</TableHead>
                         <TableHead className="w-44">Assignee</TableHead>
-                        <TableHead className="w-36 text-right">Created</TableHead>
+                        <TableHead className="w-32 text-right">Created</TableHead>
+                        {isAgent() && <TableHead className="w-24 text-right">Action</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -111,6 +116,22 @@ export function TicketList({
                                 <TableCell className="text-right text-xs text-slate-500">
                                     {formatRelativeTime(ticket.created_at)}
                                 </TableCell>
+                                {isAgent() && (
+                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (onAssignTicket) onAssignTicket(ticket);
+                                            }}
+                                            className="h-7 px-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                                        >
+                                            <UserCheck className="w-3.5 h-3.5 mr-1" />
+                                            <span>{ticket.assigned_to ? 'Reassign' : 'Assign'}</span>
+                                        </Button>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         );
                     })}

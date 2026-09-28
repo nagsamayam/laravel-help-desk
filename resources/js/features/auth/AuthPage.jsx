@@ -42,11 +42,25 @@ export function AuthPage() {
             });
 
             const data = res.data?.data || res.data;
-            setAuth(data.user, data.token || data.access_token);
+            let user = data.user;
+            const token = data.token || data.access_token;
+
+            if (!user && token) {
+                try {
+                    const meRes = await apiClient.get('/auth/me', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    user = meRes.data?.data || meRes.data;
+                } catch {
+                    // Fallback
+                }
+            }
+
+            setAuth(user, token);
             addToast({
                 type: 'success',
                 title: 'Welcome back!',
-                message: `Logged in as ${data.user?.name} (${data.user?.role})`,
+                message: `Logged in as ${user?.name || user?.email || 'User'} (${user?.role || 'Authenticated'})`,
             });
         } catch (err) {
             const { message, errors } = extractApiErrors(err);
@@ -86,8 +100,22 @@ export function AuthPage() {
             });
 
             const data = res.data?.data || res.data;
-            const userName = data.user?.name || `${regFirstName} ${regLastName}`.trim();
-            setAuth(data.user, data.token || data.access_token);
+            let user = data.user;
+            const token = data.token || data.access_token;
+
+            if (!user && token) {
+                try {
+                    const meRes = await apiClient.get('/auth/me', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    user = meRes.data?.data || meRes.data;
+                } catch {
+                    // Fallback
+                }
+            }
+
+            const userName = user?.name || `${regFirstName} ${regLastName}`.trim();
+            setAuth(user, token);
             addToast({
                 type: 'success',
                 title: 'Account created!',

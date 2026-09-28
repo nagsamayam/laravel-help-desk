@@ -70,6 +70,7 @@ export function TicketMessages({ ticketId }) {
         }
 
         addMessageMutation.mutate({
+            message: body.trim(),
             body: body.trim(),
             is_internal: isAgent() ? isInternal : false,
         });
@@ -136,7 +137,7 @@ export function TicketMessages({ ticketId }) {
                                     </div>
 
                                     <div className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                                        {msg.body}
+                                        {msg.message || msg.body}
                                     </div>
                                 </div>
                             </div>

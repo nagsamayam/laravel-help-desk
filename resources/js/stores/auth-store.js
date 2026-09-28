@@ -11,6 +11,7 @@ export const useAuthStore = create((set, get) => ({
     })(),
     token: localStorage.getItem('auth_token') || null,
     isAuthenticated: !!localStorage.getItem('auth_token'),
+    isLoadingProfile: false,
 
     setAuth: (user, token) => {
         if (token) {
@@ -20,7 +21,7 @@ export const useAuthStore = create((set, get) => ({
             localStorage.setItem('auth_user', JSON.stringify(user));
         }
         set({
-            user,
+            user: user ?? get().user,
             token: token || get().token,
             isAuthenticated: true,
         });
@@ -33,6 +34,35 @@ export const useAuthStore = create((set, get) => ({
             localStorage.removeItem('auth_user');
         }
         set({ user });
+    },
+
+    fetchProfile: async () => {
+        const token = get().token;
+        if (!token) return null;
+        try {
+            set({ isLoadingProfile: true });
+            const res = await fetch('/api/v1/auth/me', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const userData = data?.data || data;
+                if (userData && userData.id) {
+                    get().setUser(userData);
+                    return userData;
+                }
+            } else if (res.status === 401) {
+                get().logout();
+            }
+        } catch {
+            // Keep existing offline cached user if network fails
+        } finally {
+            set({ isLoadingProfile: false });
+        }
+        return get().user;
     },
 
     logout: () => {

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\API\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\LoginRequest;
 use App\Http\Requests\V1\RegisterRequest;
+use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -45,8 +46,9 @@ final class AuthController extends Controller
     {
         /** @var JWTGuard $auth */
         $auth = Auth::guard('api');
+        $user = $auth->user();
 
-        return response()->json($auth->user());
+        return response()->json($user ? new UserResource($user) : null);
     }
 
     public function refresh(): JsonResponse
@@ -66,16 +68,17 @@ final class AuthController extends Controller
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    private function tokenResponse(string $token, int $httpStatus = Response::HTTP_OK)
+    private function tokenResponse(string $token, int $httpStatus = Response::HTTP_OK): JsonResponse
     {
         /** @var JWTGuard $auth */
         $auth = auth()->guard('api');
+        $user = $auth->user();
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => $auth->factory()->getTTL() * 60,
-
+            'user' => $user ? (new UserResource($user))->resolve() : null,
         ], $httpStatus);
     }
 }

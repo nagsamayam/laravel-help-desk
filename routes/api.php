@@ -11,6 +11,7 @@ use App\Http\Controllers\API\V1\TicketMessageController;
 use App\Http\Controllers\API\V1\TicketRoutingController;
 use App\Http\Controllers\API\V1\TicketStateController;
 use App\Http\Controllers\API\V1\TicketStatusHistoryController;
+use App\Http\Controllers\API\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -68,6 +69,12 @@ Route::prefix('v1')->group(function () {
         // Ticket status history (domain lifecycle history)
         Route::get('/tickets/{ticket}/status-history', [TicketStatusHistoryController::class, 'index']);
         Route::get('/tickets/{ticket}/history', [TicketStatusHistoryController::class, 'index']);
+
+        // Users & Agents
+        Route::get('/users', [UserController::class, 'index'])
+            ->middleware('roles:'.Role::Admin->value.','.Role::Agent->value);
+        Route::get('/agents', [UserController::class, 'agents'])
+            ->middleware('roles:'.Role::Admin->value.','.Role::Agent->value);
 
         // Ticket audit logs & global audit logs
         Route::get('/tickets/{ticket}/audit-logs', [AuditLogController::class, 'ticketLogs']);

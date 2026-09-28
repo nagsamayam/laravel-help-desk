@@ -30,7 +30,7 @@ final class TicketAssignmentController extends Controller
     ): JsonResponse {
         Gate::authorize('assign', $ticket);
 
-        $agentId = $request->input('agent_id');
+        $agentId = $request->input('agent_id') ?? $request->input('assigned_to');
         $strategyName = $request->input('strategy');
 
         if ($agentId !== null) {
