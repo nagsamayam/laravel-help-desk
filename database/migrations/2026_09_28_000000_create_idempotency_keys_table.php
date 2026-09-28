@@ -13,12 +13,13 @@ return new class extends Migration
         Schema::create('idempotency_keys', function (Blueprint $table): void {
             $table->id();
             $table->string('scope_type', 32);
-            $table->unsignedBigInteger('scope_id');
+            $table->string('scope_id', 64);
             $table->string('operation', 100);
             $table->char('key_hash', 64);
             $table->char('request_hash', 64);
             $table->unsignedSmallInteger('response_status')->nullable();
             $table->json('response_body')->nullable();
+            $table->json('response_headers')->nullable();
             $table->string('resource_type', 100)->nullable();
             $table->string('resource_id', 64)->nullable();
             $table->timestamp('expires_at');

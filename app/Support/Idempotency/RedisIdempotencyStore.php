@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Idempotency;
 
+use App\Exceptions\IdempotencyInFlightException;
 use Closure;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
@@ -109,13 +110,16 @@ final class RedisIdempotencyStore
             $lock->block($waitSeconds);
         } catch (LockTimeoutException $exception) {
             Log::debug(
-                'Idempotency Redis lock unavailable; falling back to database.',
+                'Idempotency Redis lock timed out; in-flight request exists.',
                 [
                     'key' => $key,
                 ],
             );
 
-            return $callback();
+            throw new IdempotencyInFlightException(
+                'A request with this idempotency key is currently in progress.',
+                previous: $exception,
+            );
         } catch (Throwable $exception) {
             $this->reportFailure('lock', $exception);
 

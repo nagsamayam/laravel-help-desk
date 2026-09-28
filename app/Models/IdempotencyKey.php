@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
     'request_hash',
     'response_status',
     'response_body',
+    'response_headers',
     'resource_type',
     'resource_id',
     'expires_at',
@@ -34,6 +35,7 @@ class IdempotencyKey extends Model
     {
         return [
             'response_body' => 'array',
+            'response_headers' => 'array',
             'expires_at' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime',
         ];

@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\IdempotencyConflictException;
+use App\Exceptions\IdempotencyInFlightException;
 use App\Http\Middleware\CheckRole;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -58,7 +59,15 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($e instanceof IdempotencyConflictException) {
                 return ApiResponse::error(
                     code: 'IDEMPOTENCY_CONFLICT',
-                    message: $e->getMessage() ?: 'A request with this idempotency key is already in progress or completed.',
+                    message: $e->getMessage() ?: 'A request with this idempotency key was already completed with a different request.',
+                    status: Response::HTTP_CONFLICT,
+                );
+            }
+
+            if ($e instanceof IdempotencyInFlightException) {
+                return ApiResponse::error(
+                    code: 'IDEMPOTENCY_IN_FLIGHT',
+                    message: $e->getMessage() ?: 'A request with this idempotency key is currently in progress.',
                     status: Response::HTTP_CONFLICT,
                 );
             }

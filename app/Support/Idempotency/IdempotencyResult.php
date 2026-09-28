@@ -12,5 +12,6 @@ final readonly class IdempotencyResult
         public bool $replayed,
         public ?string $resourceType = null,
         public string|int|null $resourceId = null,
+        public array $headers = [],
     ) {}
 }

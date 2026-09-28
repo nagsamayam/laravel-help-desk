@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Idempotency;
 
 use App\Exceptions\IdempotencyConflictException;
+use App\Exceptions\IdempotencyInFlightException;
 use App\Models\IdempotencyKey;
 use Closure;
 use Illuminate\Database\QueryException;
@@ -138,6 +139,7 @@ final class IdempotencyManager
                         'request_hash' => $requestHash,
                         'status' => $result->status,
                         'body' => $result->body,
+                        'headers' => $result->headers,
                         'resource_type' => $result->resourceType,
                         'resource_id' => $result->resourceId,
                         'expires_at' => $expiresAt->format(DATE_ATOM),
@@ -188,6 +190,7 @@ final class IdempotencyManager
                         replayed: true,
                         resourceType: $record->resource_type,
                         resourceId: $record->resource_id,
+                        headers: $record->response_headers ?? [],
                     ),
                     $record->expires_at,
                 ];
@@ -210,6 +213,7 @@ final class IdempotencyManager
             $record->update([
                 'response_status' => $result->status,
                 'response_body' => $result->body,
+                'response_headers' => $result->headers,
                 'resource_type' => $result->resourceType,
                 'resource_id' => $result->resourceId === null
                     ? null
@@ -285,11 +289,19 @@ final class IdempotencyManager
             }
 
             /*
+             * If completed_at is null, another concurrent process is currently executing it.
+             */
+            if ($record->completed_at === null) {
+                throw new IdempotencyInFlightException(
+                    'A request with this idempotency key is currently in progress.',
+                );
+            }
+
+            /*
              * A non-expired committed record should always be complete.
              */
             if (
-                $record->completed_at === null
-                || $record->response_status === null
+                $record->response_status === null
                 || $record->response_body === null
             ) {
                 throw new RuntimeException(
@@ -349,6 +361,9 @@ final class IdempotencyManager
             resourceId: isset($cached['resource_id'])
                 ? (string) $cached['resource_id']
                 : null,
+            headers: (isset($cached['headers']) && is_array($cached['headers']))
+                ? $cached['headers']
+                : [],
         );
     }
 
