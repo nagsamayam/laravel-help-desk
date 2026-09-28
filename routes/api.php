@@ -14,7 +14,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('auth:api')->group(function () {
             Route::post('refresh', [AuthController::class, 'refresh'])
                 ->middleware('throttle:auth-refresh');
-            Route::post('me', [AuthController::class, 'me']);
+            Route::get('me', [AuthController::class, 'me']);
             Route::post('logout', [AuthController::class, 'logout']);
         });
     });

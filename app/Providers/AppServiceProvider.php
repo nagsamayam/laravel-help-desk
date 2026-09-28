@@ -31,17 +31,18 @@ class AppServiceProvider extends ServiceProvider
         $app = $this->app;
 
         Password::defaults(function () {
-            $rule = Password::min(8)
-                ->max(64)
-                ->mixedCase()
-                ->numbers()
-                ->symbols();
+            $rule = Password::min(8);
 
             /** @var Application $app */
             $app = $this->app;
 
             return $app->isProduction()
-                ? $rule->uncompromised()
+                ? $rule
+                    ->max(64)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised()
                 : $rule;
         });
 

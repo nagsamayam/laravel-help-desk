@@ -26,7 +26,7 @@ final class AuthController extends Controller
         $auth = auth()->guard('api');
         $token = $auth->login($user);
 
-        return $this->tokenResponse($token);
+        return $this->tokenResponse($token, Response::HTTP_CREATED);
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -66,7 +66,7 @@ final class AuthController extends Controller
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    private function tokenResponse(string $token)
+    private function tokenResponse(string $token, int $httpStatus = Response::HTTP_OK)
     {
         /** @var JWTGuard $auth */
         $auth = auth()->guard('api');
@@ -76,6 +76,6 @@ final class AuthController extends Controller
             'token_type' => 'bearer',
             'expires_in' => $auth->factory()->getTTL() * 60,
 
-        ]);
+        ], $httpStatus);
     }
 }

@@ -51,7 +51,7 @@ return [
         |
         */
 
-        'public' => env('JWT_PUBLIC_KEY', storage_path('app/keys/jwt-rsa-4096-public.pem')),
+        'public' => env('JWT_PUBLIC_KEY', 'file://'.storage_path('app/keys/jwt-rsa-4096-public.pem')),
 
         /*
         |--------------------------------------------------------------------------
@@ -64,7 +64,7 @@ return [
         |
         */
 
-        'private' => env('JWT_PRIVATE_KEY', storage_path('app/keys/jwt-rsa-4096-private.pem')),
+        'private' => env('JWT_PRIVATE_KEY', 'file://'.storage_path('app/keys/jwt-rsa-4096-private.pem')),
 
         /*
         |--------------------------------------------------------------------------
