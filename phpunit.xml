@@ -35,5 +35,6 @@
         <env name="JWT_ALGO" value="RS512"/>
         <env name="JWT_PRIVATE_KEY" value="file://storage/app/keys/jwt-rsa-4096-private.pem"/>
         <env name="JWT_PUBLIC_KEY" value="file://storage/app/keys/jwt-rsa-4096-public.pem"/>
+        <env name="IDEMPOTENCY_REDIS_ENABLED" value="false"/>
     </php>
 </phpunit>

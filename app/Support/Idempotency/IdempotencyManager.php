@@ -22,16 +22,20 @@ final class IdempotencyManager
     private const DEFAULT_TTL_SECONDS = 86_400;
 
     public function __construct(
+        private readonly RedisIdempotencyStore $redis,
         private readonly ?int $ttlSeconds = null,
     ) {}
 
     /**
-     * Execute a database-backed operation exactly once per scoped idempotency key
-     * for the retention period, and replay the original response thereafter.
+     * Execute a database-backed operation exactly once per scoped
+     * idempotency key for the retention period, and replay the
+     * original response thereafter.
      *
-     * The callback must contain only database-transaction-safe work.
-     * Do not perform external HTTP calls, emails, queues, or other irreversible
-     * side effects inside it.
+     * Redis is only an optimization layer.
+     * The database remains the source of truth.
+     *
+     * The callback must contain only transaction-safe database work.
+     * External irreversible side effects must not be performed here.
      */
     public function execute(
         string $scopeType,
@@ -46,8 +50,108 @@ final class IdempotencyManager
         $operation = $this->validateOperation($operation);
 
         $keyHash = hash('sha256', $key);
-        $requestHash = $this->requestHash($operation, $requestPayload);
 
+        $requestHash = $this->requestHash(
+            $operation,
+            $requestPayload,
+        );
+
+        $redisKey = $this->redis->key(
+            scopeType: $scopeType,
+            scopeId: $scopeId,
+            operation: $operation,
+            keyHash: $keyHash,
+        );
+
+        /*
+         * Fast replay path.
+         *
+         * Redis contains only completed responses written after
+         * the corresponding database transaction committed.
+         */
+        $cached = $this->redis->get($redisKey);
+
+        if ($cached !== null) {
+            return $this->resultFromCache(
+                cached: $cached,
+                requestHash: $requestHash,
+            );
+        }
+
+        /*
+         * Redis lock reduces concurrent duplicate work.
+         *
+         * It is not the correctness mechanism.
+         */
+        return $this->redis->withLock(
+            $redisKey,
+            function () use (
+                $scopeType,
+                $scopeId,
+                $operation,
+                $keyHash,
+                $requestHash,
+                $redisKey,
+                $callback,
+            ): IdempotencyResult {
+                /*
+                 * Another request may have completed while this request
+                 * was waiting for the Redis lock.
+                 */
+                $cached = $this->redis->get($redisKey);
+
+                if ($cached !== null) {
+                    return $this->resultFromCache(
+                        cached: $cached,
+                        requestHash: $requestHash,
+                    );
+                }
+
+                /*
+                 * MySQL remains authoritative.
+                 */
+                [$result, $expiresAt] = $this->executeAgainstDatabase(
+                    scopeType: $scopeType,
+                    scopeId: $scopeId,
+                    operation: $operation,
+                    keyHash: $keyHash,
+                    requestHash: $requestHash,
+                    callback: $callback,
+                );
+
+                /*
+                 * The transaction has committed successfully at this point.
+                 *
+                 * Only completed results are cached.
+                 */
+                $this->redis->put(
+                    key: $redisKey,
+                    value: [
+                        'request_hash' => $requestHash,
+                        'status' => $result->status,
+                        'body' => $result->body,
+                        'resource_type' => $result->resourceType,
+                        'resource_id' => $result->resourceId,
+                    ],
+                    expiresAt: $expiresAt,
+                );
+
+                return $result;
+            },
+        );
+    }
+
+    /**
+     * @return array{0: IdempotencyResult, 1: \DateTimeInterface}
+     */
+    private function executeAgainstDatabase(
+        string $scopeType,
+        string $scopeId,
+        string $operation,
+        string $keyHash,
+        string $requestHash,
+        Closure $callback,
+    ): array {
         return DB::transaction(function () use (
             $scopeType,
             $scopeId,
@@ -55,7 +159,7 @@ final class IdempotencyManager
             $keyHash,
             $requestHash,
             $callback,
-        ): IdempotencyResult {
+        ): array {
             $record = $this->reserve(
                 scopeType: $scopeType,
                 scopeId: $scopeId,
@@ -65,17 +169,30 @@ final class IdempotencyManager
             );
 
             /*
-             * An existing completed record means this is a retry.
-             *
-             * The callback is deliberately NOT executed again.
+             * Existing completed record = replay.
              */
-            if ($record instanceof IdempotencyResult) {
-                return $record;
+            if ($record->completed_at !== null) {
+                return [
+                    new IdempotencyResult(
+                        status: $record->response_status,
+                        body: $record->response_body,
+                        replayed: true,
+                        resourceType: $record->resource_type,
+                        resourceId: $record->resource_id,
+                    ),
+                    $record->expires_at,
+                ];
             }
 
+            /*
+             * New reservation.
+             */
             $result = $callback();
 
-            if (! $result instanceof IdempotencyResult || $result->replayed) {
+            if (
+                ! $result instanceof IdempotencyResult
+                || $result->replayed
+            ) {
                 throw new RuntimeException(
                     'The idempotent operation callback must return a fresh IdempotencyResult.'
                 );
@@ -91,17 +208,23 @@ final class IdempotencyManager
                 'completed_at' => now(),
             ]);
 
-            return $result;
+            return [
+                $result,
+                $record->expires_at,
+            ];
         }, attempts: 5);
     }
 
+    /**
+     * Reserve the idempotency key or resolve an existing record.
+     */
     private function reserve(
         string $scopeType,
         string $scopeId,
         string $operation,
         string $keyHash,
         string $requestHash,
-    ): IdempotencyKey|IdempotencyResult {
+    ): IdempotencyKey {
         try {
             return IdempotencyKey::query()->create([
                 'scope_type' => $scopeType,
@@ -109,7 +232,9 @@ final class IdempotencyManager
                 'operation' => $operation,
                 'key_hash' => $keyHash,
                 'request_hash' => $requestHash,
-                'expires_at' => now()->addSeconds($this->ttlSeconds()),
+                'expires_at' => now()->addSeconds(
+                    $this->ttlSeconds(),
+                ),
             ]);
         } catch (QueryException $exception) {
             if (! $this->isDuplicateKey($exception)) {
@@ -124,7 +249,9 @@ final class IdempotencyManager
                 ->firstOrFail();
 
             /*
-             * Retention has expired, so this key may be reused.
+             * Retention has expired.
+             *
+             * This key may be reused.
              */
             if ($record->expires_at->isPast()) {
                 $record->delete();
@@ -135,25 +262,21 @@ final class IdempotencyManager
                     'operation' => $operation,
                     'key_hash' => $keyHash,
                     'request_hash' => $requestHash,
-                    'expires_at' => now()->addSeconds($this->ttlSeconds()),
+                    'expires_at' => now()->addSeconds(
+                        $this->ttlSeconds(),
+                    ),
                 ]);
             }
 
             /*
-             * Same key but different request payload.
-             *
-             * This is a client error and must never execute the callback.
+             * Same key + different request = conflict.
              */
             if (! hash_equals($record->request_hash, $requestHash)) {
                 throw new IdempotencyConflictException;
             }
 
             /*
-             * Same key + same request.
-             *
-             * Because the idempotency record and the business operation are
-             * committed in the same transaction, a committed record should
-             * always be complete.
+             * A non-expired committed record should always be complete.
              */
             if (
                 $record->completed_at === null
@@ -161,18 +284,49 @@ final class IdempotencyManager
                 || $record->response_body === null
             ) {
                 throw new RuntimeException(
-                    'Idempotency record is incomplete.'
+                    'Idempotency record is incomplete.',
                 );
             }
 
-            return new IdempotencyResult(
-                status: $record->response_status,
-                body: $record->response_body,
-                replayed: true,
-                resourceType: $record->resource_type,
-                resourceId: $record->resource_id,
+            return $record;
+        }
+    }
+
+    private function resultFromCache(
+        array $cached,
+        string $requestHash,
+    ): IdempotencyResult {
+        $cachedRequestHash = $cached['request_hash'] ?? null;
+
+        if (
+            ! is_string($cachedRequestHash)
+            || ! hash_equals($cachedRequestHash, $requestHash)
+        ) {
+            throw new IdempotencyConflictException;
+        }
+
+        if (
+            ! isset($cached['status'])
+            || ! is_int($cached['status'])
+            || ! array_key_exists('body', $cached)
+            || ! is_array($cached['body'])
+        ) {
+            throw new RuntimeException(
+                'Invalid idempotency cache entry.',
             );
         }
+
+        return new IdempotencyResult(
+            status: $cached['status'],
+            body: $cached['body'],
+            replayed: true,
+            resourceType: isset($cached['resource_type'])
+                ? (string) $cached['resource_type']
+                : null,
+            resourceId: isset($cached['resource_id'])
+                ? (string) $cached['resource_id']
+                : null,
+        );
     }
 
     private function requestHash(
@@ -231,7 +385,7 @@ final class IdempotencyManager
             || preg_match('/^[\x21-\x7E]+$/', $key) !== 1
         ) {
             throw new RuntimeException(
-                'Idempotency-Key must contain 16-255 printable ASCII characters.'
+                'Idempotency-Key must contain 16-255 printable ASCII characters.',
             );
         }
 
@@ -246,7 +400,7 @@ final class IdempotencyManager
             || preg_match('/^[A-Za-z0-9._:-]+$/', $operation) !== 1
         ) {
             throw new RuntimeException(
-                'Invalid idempotency operation.'
+                'Invalid idempotency operation.',
             );
         }
 
@@ -262,13 +416,15 @@ final class IdempotencyManager
             );
     }
 
-    private function isDuplicateKey(QueryException $exception): bool
-    {
+    private function isDuplicateKey(
+        QueryException $exception,
+    ): bool {
         if ($exception instanceof UniqueConstraintViolationException) {
             return true;
         }
 
         return $exception->getCode() === self::DUPLICATE_KEY_SQLSTATE
-            && ((int) ($exception->errorInfo[1] ?? 0) === self::MYSQL_DUPLICATE_KEY);
+            && ((int) ($exception->errorInfo[1] ?? 0)
+                === self::MYSQL_DUPLICATE_KEY);
     }
 }
