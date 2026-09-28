@@ -4,7 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-use App\Enums\UserRole;
+use App\Enums\Role;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -14,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 use Override;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-#[Fillable(['first_name', 'last_name', 'email', 'password'])]
+#[Fillable(['first_name', 'last_name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements JWTSubject
 {
@@ -31,7 +31,7 @@ class User extends Authenticatable implements JWTSubject
         return [
             'email_verified_at' => 'immutable_datetime',
             'password' => 'hashed',
-            'role' => UserRole::class,
+            'role' => Role::class,
         ];
     }
 
@@ -51,5 +51,10 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims(): array
     {
         return [];
+    }
+
+    public function hasRole(Role $role): bool
+    {
+        return $this->role === $role;
     }
 }

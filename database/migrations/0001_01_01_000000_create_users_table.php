@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Enums\UserRole;
+use App\Enums\Role;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
-            $table->string('role')->default(UserRole::Customer);
+            $table->string('role')->default(Role::Customer);
             $table->timestamps();
         });
 

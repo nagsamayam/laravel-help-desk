@@ -32,5 +32,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="JWT_ALGO" value="RS512"/>
+        <env name="JWT_PRIVATE_KEY" value="file://storage/app/keys/jwt-rsa-4096-private.pem"/>
+        <env name="JWT_PUBLIC_KEY" value="file://storage/app/keys/jwt-rsa-4096-public.pem"/>
     </php>
 </phpunit>

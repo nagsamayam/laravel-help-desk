@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Enums\UserRole;
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -44,7 +44,7 @@ test('registered user default role should be customer', function () {
     ]);
 
     $this->assertDatabaseHas('users', [
-        'role' => UserRole::Customer,
+        'role' => Role::Customer,
     ]);
 });
 
