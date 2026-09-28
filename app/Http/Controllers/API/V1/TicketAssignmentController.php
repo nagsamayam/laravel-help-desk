@@ -36,6 +36,7 @@ final class TicketAssignmentController extends Controller
         if ($agentId !== null) {
             $agent = User::query()->findOrFail((int) $agentId);
             $assignedTicket = $assignTicketAction->execute($ticket, $agent);
+            $assignedTicket->loadMissing(['category', 'customer', 'assignee']);
 
             return response()->json([
                 'data' => (new TicketResource($assignedTicket))->resolve($request),
@@ -48,6 +49,7 @@ final class TicketAssignmentController extends Controller
         $assignedAgent = $assignmentService->assign($ticket, $strategy);
 
         $freshTicket = $ticket->refresh();
+        $freshTicket->loadMissing(['category', 'customer', 'assignee']);
 
         if ($assignedAgent === null) {
             return response()->json([

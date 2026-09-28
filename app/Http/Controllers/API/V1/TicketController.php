@@ -112,6 +112,7 @@ final class TicketController extends Controller
         ]);
 
         $ticket = $createTicket->execute($ticketData);
+        $ticket->loadMissing(['category', 'customer', 'assignee']);
 
         return response()->json([
             'data' => (new TicketResource($ticket))->resolve($request),
@@ -131,6 +132,7 @@ final class TicketController extends Controller
             ticket: $ticket,
             attributes: $ticketData,
         );
+        $updatedTicket->loadMissing(['category', 'customer', 'assignee']);
 
         return response()->json([
             'data' => (new TicketResource($updatedTicket))->resolve($request),
@@ -154,6 +156,8 @@ final class TicketController extends Controller
     public function show(Ticket $ticket): TicketResource
     {
         Gate::authorize('view', $ticket);
+
+        $ticket->loadMissing(['category', 'customer', 'assignee']);
 
         return new TicketResource($ticket);
     }

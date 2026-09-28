@@ -100,18 +100,29 @@ export function TicketList({
                                     <PriorityBadge priority={ticket.priority} />
                                 </TableCell>
                                 <TableCell>
-                                    {ticket.assigned_to_user || ticket.assigned_agent ? (
-                                        <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
-                                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold">
-                                                {(ticket.assigned_to_user?.name || ticket.assigned_agent?.name || 'A')[0]}
-                                            </div>
-                                            <span className="truncate max-w-[120px]">
-                                                {ticket.assigned_to_user?.name || ticket.assigned_agent?.name}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-xs text-slate-400 italic">Unassigned</span>
-                                    )}
+                                    {(() => {
+                                        const assignee = ticket.assignee || ticket.assigne || ticket.assigned_to_user || ticket.assigned_agent;
+                                        if (assignee) {
+                                            return (
+                                                <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
+                                                    <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                                        {(assignee.name || assignee.full_name || assignee.email || 'A')[0].toUpperCase()}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="truncate max-w-[120px] font-medium" title={assignee.name || assignee.full_name}>
+                                                            {assignee.name || assignee.full_name || 'Agent'}
+                                                        </span>
+                                                        {assignee.email && (
+                                                            <span className="truncate max-w-[120px] text-[10px] text-slate-400" title={assignee.email}>
+                                                                {assignee.email}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return <span className="text-xs text-slate-400 italic">Unassigned</span>;
+                                    })()}
                                 </TableCell>
                                 <TableCell className="text-right text-xs text-slate-500">
                                     {formatRelativeTime(ticket.created_at)}

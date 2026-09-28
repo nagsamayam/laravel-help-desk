@@ -137,9 +137,38 @@ export function TicketDetail({ ticketId, onBack }) {
                             </button>
                         )}
                     </div>
-                    <div className="font-semibold text-slate-800 dark:text-slate-200">
-                        {ticket.assigned_to_user?.name || ticket.assigned_agent?.name || 'Unassigned'}
-                    </div>
+                    {(() => {
+                        const assignee = ticket.assignee || ticket.assigne || ticket.assigned_to_user || ticket.assigned_agent;
+                        if (assignee) {
+                            return (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                        {(assignee.name || assignee.full_name || assignee.email || 'A')[0].toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                            {assignee.name || assignee.full_name || 'Agent'}
+                                        </span>
+                                        {assignee.email && (
+                                            <span className="text-[11px] text-slate-400 truncate">
+                                                {assignee.email}
+                                            </span>
+                                        )}
+                                        {assignee.role && (
+                                            <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                                                {assignee.role}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return (
+                            <div className="font-semibold text-slate-400 italic">
+                                Unassigned
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 <div>

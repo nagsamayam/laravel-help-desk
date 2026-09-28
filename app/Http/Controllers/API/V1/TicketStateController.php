@@ -28,6 +28,7 @@ final class TicketStateController extends Controller
         $targetStatus = TicketStatus::from((string) $request->validated('status'));
 
         $updated = $ticket->transitionTo($targetStatus);
+        $updated->loadMissing(['category', 'customer', 'assignee']);
 
         return response()->json([
             'data' => (new TicketResource($updated))->resolve($request),
@@ -43,6 +44,7 @@ final class TicketStateController extends Controller
         Gate::authorize('resolve', $ticket);
 
         $resolvedTicket = $action->execute($ticket);
+        $resolvedTicket->loadMissing(['category', 'customer', 'assignee']);
 
         return response()->json([
             'data' => (new TicketResource($resolvedTicket))->resolve($request),
@@ -58,6 +60,7 @@ final class TicketStateController extends Controller
         Gate::authorize('close', $ticket);
 
         $closedTicket = $action->execute($ticket);
+        $closedTicket->loadMissing(['category', 'customer', 'assignee']);
 
         return response()->json([
             'data' => (new TicketResource($closedTicket))->resolve($request),
@@ -73,6 +76,7 @@ final class TicketStateController extends Controller
         Gate::authorize('reopen', $ticket);
 
         $reopenedTicket = $action->execute($ticket);
+        $reopenedTicket->loadMissing(['category', 'customer', 'assignee']);
 
         return response()->json([
             'data' => (new TicketResource($reopenedTicket))->resolve($request),
