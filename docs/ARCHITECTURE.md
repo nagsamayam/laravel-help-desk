@@ -20,6 +20,8 @@ Controllers
    v
 Application / Domain Logic
    |
+   +--> Idempotency boundary --> MySQL
+   |
    +--> Models / Eloquent
    +--> Events / Listeners
    +--> Jobs / Queues
@@ -41,6 +43,7 @@ Initial entities:
 - Category
 - TicketStatusHistory
 - AuditLog
+- IdempotencyKey
 - Skill
 - UserSkill
 - TicketSkill
@@ -69,6 +72,21 @@ Use services/actions/domain objects when they provide a clear responsibility.
 
 Use Eloquent naturally. Do not introduce repositories solely to hide Eloquent.
 
+### Idempotency
+
+Idempotency is implemented as a reusable application service around database-backed commands.
+
+The service:
+
+- scopes keys to a principal and operation;
+- stores only a hash of the raw key;
+- fingerprints the canonical validated request;
+- relies on a MySQL unique constraint for concurrency correctness;
+- stores the original response for deterministic replay;
+- commits the idempotency record and business mutation atomically.
+
+The idempotency service is deliberately not a repository abstraction and does not use Redis as the source of truth.
+
 ### Events
 
 Use events for meaningful domain occurrences such as:
@@ -85,6 +103,8 @@ Listeners can handle secondary concerns such as notifications and audit logging.
 
 Use Redis-backed queues for work that should happen asynchronously, such as notifications and other suitable background processing.
 
+Do not place irreversible external side effects inside the database transaction used by the idempotency boundary.
+
 ### Redis
 
 Redis is intended for:
@@ -93,7 +113,7 @@ Redis is intended for:
 - cache
 - distributed/concurrency coordination where justified
 
-Do not use Redis as a replacement for MySQL transactional data.
+Do not use Redis as a replacement for MySQL transactional data or idempotency correctness.
 
 ## Future multi-tenancy
 
@@ -108,3 +128,5 @@ Tenant isolation must eventually be enforced at multiple layers:
 - queue/job context
 - file paths
 - API behavior
+
+The idempotency scope abstraction is already designed to support moving from user-scoped keys to tenant-scoped keys later.

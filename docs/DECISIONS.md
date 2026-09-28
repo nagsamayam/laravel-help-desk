@@ -59,18 +59,28 @@ Use both concepts.
 Reason:
 Ticket status history is a domain-specific lifecycle record, while audit logs provide broader change tracking.
 
-## ADR-006 — Ticket creation idempotency
+## ADR-006 — Dedicated transactional idempotency subsystem
 
 Status: Accepted
 
 Decision:
-Support an idempotency key for ticket creation.
+Use a dedicated `idempotency_keys` table and reusable `IdempotencyManager` instead of storing an idempotency key directly on `tickets`.
 
-Current approach:
-Use a unique idempotency_key on tickets.
+The uniqueness boundary is:
 
-Future:
-Consider a dedicated idempotency_keys table if idempotency is required for multiple API operations.
+`scope_type + scope_id + operation + key_hash`
+
+The raw client key is hashed before persistence. The validated business request is canonically serialized and hashed so a key cannot safely be reused with a different request payload.
+
+The idempotency record and the business mutation are committed in the same MySQL transaction. The original response status/body are stored for deterministic replay.
+
+Reason:
+Ticket creation is only the first mutating API operation that benefits from idempotency. A dedicated subsystem provides a reusable, auditable, secure, and future multi-tenant-aware boundary without making Redis the transactional source of truth.
+
+Concurrency is enforced by the database unique constraint. Redis may be used later as an optimization or coordination aid, but correctness does not depend on it.
+
+Limitation:
+This provides strong idempotency for transactional database mutations. It is not an exactly-once guarantee for arbitrary external side effects. Those require an outbox/event architecture.
 
 ## ADR-007 — Design patterns
 

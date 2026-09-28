@@ -56,11 +56,31 @@ Potential use:
 
 Explicit application actions:
 
+- CreateTicket
 - ResolveTicket
 - CloseTicket
 - ReopenTicket
 - AssignTicket
 - AddTicketMessage
+
+`CreateTicket` is an application command/action. When it is idempotent, it executes its database mutation inside the idempotency transaction boundary.
+
+## Idempotency Manager
+
+Purpose:
+
+Provide one reusable boundary for transactional API idempotency without coupling individual domain models to idempotency columns.
+
+Responsibilities:
+
+- key validation
+- scoped uniqueness
+- request fingerprinting
+- concurrency handling through the database unique constraint
+- response persistence and replay
+- retention metadata
+
+This is treated as a cross-cutting application/infrastructure service rather than a domain pattern forced onto tickets.
 
 ## Adapter
 

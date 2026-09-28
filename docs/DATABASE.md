@@ -33,7 +33,6 @@ Potential fields:
 Potential initial fields:
 
 - id
-- idempotency_key
 - customer_id
 - assigned_to
 - category_id
@@ -47,13 +46,52 @@ Important indexes will be derived from actual access patterns.
 
 Potential indexes:
 
-- unique idempotency_key
 - assigned_to + status
 - customer_id + status
 - category_id + status
 - status + priority
 
-### ticket_messages
+Ticket creation idempotency is intentionally **not** stored on `tickets`. It is handled by the dedicated `idempotency_keys` table below so the mechanism can be reused by other mutating API operations.
+
+### idempotency_keys
+
+Purpose: durable, transactional API idempotency for mutating operations.
+
+Fields:
+
+- id
+- scope_type
+- scope_id
+- operation
+- key_hash
+- request_hash
+- response_status
+- response_body
+- resource_type
+- resource_id
+- expires_at
+- completed_at
+- timestamps
+
+Constraints/indexes:
+
+- unique scope_type + scope_id + operation + key_hash
+- index expires_at
+- index resource_type + resource_id
+
+The raw `Idempotency-Key` is not stored. Only its SHA-256 hash is persisted.
+
+The request fingerprint is a SHA-256 hash of a canonical representation of the operation and validated business payload. The raw request payload is not persisted by the idempotency subsystem.
+
+Current scope is the authenticated user. The `scope_type`/`scope_id` design leaves room for a future tenant-scoped implementation without changing the core idempotency model.
+
+The stored response status/body are required for deterministic replay of the original API response.
+
+Default retention is 24 hours and is configurable through `IDEMPOTENCY_TTL_SECONDS`.
+
+Expired records should be pruned regularly.
+
+## ticket_messages
 
 Potential fields:
 
@@ -63,7 +101,7 @@ Potential fields:
 - body
 - timestamps
 
-### ticket_status_histories
+## ticket_status_histories
 
 Purpose: domain-specific history of ticket lifecycle transitions.
 
@@ -77,7 +115,7 @@ Potential fields:
 - reason
 - created_at
 
-### audit_logs
+## audit_logs
 
 Purpose: generic record of important changes.
 
@@ -104,23 +142,19 @@ Ticket status history answers:
 
 Audit log answers:
 
-> Who changed what, when, and what were the old/new values?
+> Who changed what, when, and what were old/new values?
 
 They should not be treated as the same table.
 
-## Idempotency
+## Idempotency transaction model
 
-Ticket creation should support an idempotency key.
+For a database-backed command, the idempotency record and the business mutation are committed in the same MySQL transaction.
 
-For the current single-tenant implementation:
+A concurrent request using the same scoped operation/key waits on the unique constraint. Once the first transaction commits, the second request observes the existing completed idempotency record and replays the stored response. If the first transaction rolls back, the second request can proceed normally.
 
-- idempotency_key should be unique.
+This gives strong idempotency for transactional database mutations without using Redis as the source of truth.
 
-Future multi-tenant implementation:
-
-- likely use a composite unique constraint such as tenant_id + idempotency_key.
-
-For a more general idempotency mechanism, a dedicated idempotency_keys table may eventually be preferable.
+The mechanism does **not** claim exactly-once execution for arbitrary external side effects. External email/SMS/HTTP integrations should use an outbox/event design when introduced.
 
 ## Concurrency
 
@@ -132,4 +166,4 @@ Examples:
 - concurrent ticket assignment
 - preventing duplicate assignment decisions
 
-Do not solve concurrency prematurely; add the appropriate protection when the relevant feature is implemented.
+Idempotency is now handled as a first-class database concern because it directly protects mutating API operations from duplicate submissions.

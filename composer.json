@@ -12,7 +12,8 @@
         "php": "^8.3",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
-        "php-open-source-saver/jwt-auth": "^2.9"
+        "php-open-source-saver/jwt-auth": "^2.9",
+        "spatie/laravel-data": "^4.23"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.7",
@@ -73,6 +74,12 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "optimize": [
+            "@php artisan optimize"
+        ],
+        "optimize:clear": [
+            "@php artisan optimize:clear"
         ],
         "pint-check": "@php vendor/bin/pint",
         "code-shield": [

@@ -19,7 +19,6 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->string('idempotency_key')->unique();
             $table->string('subject');
             $table->text('description');
             $table->foreignIdFor(User::class, 'customer_id')
