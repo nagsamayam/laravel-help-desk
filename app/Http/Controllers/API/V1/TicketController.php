@@ -31,7 +31,6 @@ final class TicketController extends Controller
         $validated = $request->validated();
 
         $ticketData = CreateTicketData::from([
-            'idempotency_key' => $request->idempotencyKey(),
             'subject' => $request->string('subject'),
             'description' => $request->string('description'),
             'customer_id' => $user->getKey(),

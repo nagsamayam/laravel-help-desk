@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Exceptions\IdempotencyConflictException;
 use App\Support\Idempotency\IdempotencyManager;
 use App\Support\Idempotency\IdempotencyResult;
+use App\Support\Idempotency\RedisIdempotencyStore;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {
@@ -46,7 +47,7 @@ it('caches a completed response in redis and replays it', function (): void {
         scopeType: 'user',
         scopeId: 10,
         operation: 'tickets.update',
-        key: '0123456789abcdef',
+        key: 'redis-replay-test-01',
         requestPayload: [
             'ticket_id' => 123,
             'subject' => 'Updated ticket',
@@ -58,7 +59,7 @@ it('caches a completed response in redis and replays it', function (): void {
         scopeType: 'user',
         scopeId: 10,
         operation: 'tickets.update',
-        key: '0123456789abcdef',
+        key: 'redis-replay-test-01',
         requestPayload: [
             'ticket_id' => 123,
             'subject' => 'Updated ticket',
@@ -85,7 +86,7 @@ it('rejects a different request when the redis cache contains the same key', fun
         scopeType: 'user',
         scopeId: 10,
         operation: 'tickets.update',
-        key: '0123456789abcdef',
+        key: 'redis-conflict-test-01',
         requestPayload: [
             'ticket_id' => 123,
             'subject' => 'Original subject',
@@ -110,7 +111,7 @@ it('rejects a different request when the redis cache contains the same key', fun
             scopeType: 'user',
             scopeId: 10,
             operation: 'tickets.update',
-            key: '0123456789abcdef',
+            key: 'redis-conflict-test-01',
             requestPayload: [
                 'ticket_id' => 123,
                 'subject' => 'Different subject',
@@ -137,7 +138,7 @@ it('continues to work without redis', function (): void {
         scopeType: 'user',
         scopeId: 10,
         operation: 'tickets.create',
-        key: '0123456789abcdef',
+        key: 'redis-disabled-test-01',
         requestPayload: [
             'subject' => 'Printer issue',
         ],
@@ -162,7 +163,7 @@ it('continues to work without redis', function (): void {
         scopeType: 'user',
         scopeId: 10,
         operation: 'tickets.create',
-        key: '0123456789abcdef',
+        key: 'redis-disabled-test-01',
         requestPayload: [
             'subject' => 'Printer issue',
         ],
@@ -177,4 +178,111 @@ it('continues to work without redis', function (): void {
         ->and($first->replayed)->toBeFalse()
         ->and($second->replayed)->toBeTrue()
         ->and($second->status)->toBe(201);
+});
+
+it('does not re-execute the callback when the callback throws', function (): void {
+    $manager = app(IdempotencyManager::class);
+
+    $executions = 0;
+
+    try {
+        $manager->execute(
+            scopeType: 'user',
+            scopeId: 999,
+            operation: 'tests.callback_failure',
+            key: 'callback-failure-'.bin2hex(random_bytes(8)),
+            requestPayload: [
+                'subject' => 'Failure test',
+            ],
+            callback: function () use (&$executions): IdempotencyResult {
+                $executions++;
+
+                throw new RuntimeException(
+                    'Business operation failed.',
+                );
+            },
+        );
+    } catch (RuntimeException $exception) {
+        expect($exception->getMessage())
+            ->toBe('Business operation failed.');
+    }
+
+    expect($executions)->toBe(1);
+});
+
+it('falls back to the database when a redis cache entry is expired', function (): void {
+    $manager = app(IdempotencyManager::class);
+    $redis = app(RedisIdempotencyStore::class);
+
+    $key = 'redis-expiry-test-01';
+    $keyHash = hash('sha256', $key);
+
+    $redisKey = $redis->key(
+        scopeType: 'user',
+        scopeId: '10',
+        operation: 'tickets.create',
+        keyHash: $keyHash,
+    );
+
+    $executions = 0;
+
+    $first = $manager->execute(
+        scopeType: 'user',
+        scopeId: 10,
+        operation: 'tickets.create',
+        key: $key,
+        requestPayload: [
+            'subject' => 'Printer issue',
+        ],
+        callback: function () use (&$executions): IdempotencyResult {
+            $executions++;
+
+            return new IdempotencyResult(
+                status: 201,
+                body: [
+                    'data' => [
+                        'id' => 123,
+                    ],
+                ],
+                replayed: false,
+                resourceType: 'ticket',
+                resourceId: 123,
+            );
+        },
+    );
+
+    $cached = Cache::store('array')->get($redisKey);
+
+    expect($cached)->toBeArray();
+
+    $cached['expires_at'] = now()
+        ->subSecond()
+        ->format(DATE_ATOM);
+
+    Cache::store('array')->put(
+        $redisKey,
+        $cached,
+        60,
+    );
+
+    $second = $manager->execute(
+        scopeType: 'user',
+        scopeId: 10,
+        operation: 'tickets.create',
+        key: $key,
+        requestPayload: [
+            'subject' => 'Printer issue',
+        ],
+        callback: function () use (&$executions): IdempotencyResult {
+            $executions++;
+
+            throw new LogicException(
+                'The callback must not execute when the database record is complete.',
+            );
+        },
+    );
+
+    expect($first->replayed)->toBeFalse()
+        ->and($second->replayed)->toBeTrue()
+        ->and($executions)->toBe(1);
 });

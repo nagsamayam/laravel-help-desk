@@ -13,7 +13,6 @@ class CreateTicketData extends Data
      * Create a new class instance.
      */
     public function __construct(
-        public string $idempotency_key,
         public string $subject,
         public string $description,
         public int $category_id,

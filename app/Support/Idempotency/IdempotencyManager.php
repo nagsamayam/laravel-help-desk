@@ -72,10 +72,14 @@ final class IdempotencyManager
         $cached = $this->redis->get($redisKey);
 
         if ($cached !== null) {
-            return $this->resultFromCache(
+            $cachedResult = $this->resultFromCache(
                 cached: $cached,
                 requestHash: $requestHash,
             );
+
+            if ($cachedResult !== null) {
+                return $cachedResult;
+            }
         }
 
         /*
@@ -101,10 +105,14 @@ final class IdempotencyManager
                 $cached = $this->redis->get($redisKey);
 
                 if ($cached !== null) {
-                    return $this->resultFromCache(
+                    $cachedResult = $this->resultFromCache(
                         cached: $cached,
                         requestHash: $requestHash,
                     );
+
+                    if ($cachedResult !== null) {
+                        return $cachedResult;
+                    }
                 }
 
                 /*
@@ -132,6 +140,7 @@ final class IdempotencyManager
                         'body' => $result->body,
                         'resource_type' => $result->resourceType,
                         'resource_id' => $result->resourceId,
+                        'expires_at' => $expiresAt->format(DATE_ATOM),
                     ],
                     expiresAt: $expiresAt,
                 );
@@ -295,7 +304,7 @@ final class IdempotencyManager
     private function resultFromCache(
         array $cached,
         string $requestHash,
-    ): IdempotencyResult {
+    ): ?IdempotencyResult {
         $cachedRequestHash = $cached['request_hash'] ?? null;
 
         if (
@@ -305,15 +314,29 @@ final class IdempotencyManager
             throw new IdempotencyConflictException;
         }
 
+        $expiresAt = $cached['expires_at'] ?? null;
+
+        if (! is_string($expiresAt)) {
+            return null;
+        }
+
+        try {
+            $expiration = new \DateTimeImmutable($expiresAt);
+        } catch (\Exception) {
+            return null;
+        }
+
+        if ($expiration->getTimestamp() <= now()->getTimestamp()) {
+            return null;
+        }
+
         if (
             ! isset($cached['status'])
             || ! is_int($cached['status'])
             || ! array_key_exists('body', $cached)
             || ! is_array($cached['body'])
         ) {
-            throw new RuntimeException(
-                'Invalid idempotency cache entry.',
-            );
+            return null;
         }
 
         return new IdempotencyResult(

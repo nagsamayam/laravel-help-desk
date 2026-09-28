@@ -18,12 +18,17 @@ final class RedisIdempotencyStore
         string $operation,
         string $keyHash,
     ): string {
-        return implode(':', [
-            config('idempotency.redis.prefix', 'idempotency'),
+        $identity = hash('sha256', implode("\0", [
             $scopeType,
             $scopeId,
             $operation,
             $keyHash,
+        ]));
+
+        return implode(':', [
+            config('idempotency.redis.prefix', 'idempotency'),
+            'result',
+            $identity,
         ]);
     }
 
@@ -97,18 +102,12 @@ final class RedisIdempotencyStore
             ),
         );
 
+        $lock = Cache::store($this->store())
+            ->lock($key, $lockSeconds);
+
         try {
-            return Cache::store($this->store())
-                ->lock($key, $lockSeconds)
-                ->block($waitSeconds, $callback);
+            $lock->block($waitSeconds);
         } catch (LockTimeoutException $exception) {
-            /*
-             * We failed to acquire the optimization lock.
-             *
-             * Do not fail the idempotent operation. The callback still
-             * enters the database-backed idempotency algorithm, where the
-             * unique constraint determines whether execution is allowed.
-             */
             Log::debug(
                 'Idempotency Redis lock unavailable; falling back to database.',
                 [
@@ -118,12 +117,15 @@ final class RedisIdempotencyStore
 
             return $callback();
         } catch (Throwable $exception) {
-            /*
-             * Redis must never become a correctness dependency.
-             */
             $this->reportFailure('lock', $exception);
 
             return $callback();
+        }
+
+        try {
+            return $callback();
+        } finally {
+            $lock->release();
         }
     }
 
