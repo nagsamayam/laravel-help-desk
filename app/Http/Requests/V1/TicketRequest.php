@@ -28,7 +28,7 @@ class TicketRequest extends FormRequest
                     return;
                 }
 
-                if (strlen($key) < 16 || strlen($key) > 255) {
+                if (mb_strlen($key) < 16 || mb_strlen($key) > 255) {
                     $validator->errors()->add(
                         'Idempotency-Key',
                         'The Idempotency-Key header must be between 16 and 255 characters.'

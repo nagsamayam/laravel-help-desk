@@ -16,7 +16,7 @@ class CreateTicketRequest extends TicketRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->hasRole(Role::Customer);
+        return $this->user()?->hasRole(Role::Customer) ?? false;
     }
 
     /**

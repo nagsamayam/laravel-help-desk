@@ -7,7 +7,7 @@ namespace App\Actions;
 use App\DTOs\CreateTicketData;
 use App\Models\Ticket;
 
-class CreateTicketAction
+final class CreateTicketAction
 {
     public function execute(
         CreateTicketData $createTicketData,

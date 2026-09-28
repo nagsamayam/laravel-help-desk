@@ -8,7 +8,7 @@ use App\Actions\CreateTicketAction;
 use App\Actions\DeleteTicketAction;
 use App\Actions\UpdateTicketAction;
 use App\DTOs\CreateTicketData;
-use App\Enums\TicketPriority;
+use App\DTOs\UpdateTicketData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\CreateTicketRequest;
 use App\Http\Requests\V1\TicketRequest;
@@ -27,11 +27,8 @@ final class TicketController extends Controller
         $user = $request->user();
 
         $ticketData = CreateTicketData::from([
-            'subject' => $request->string('subject'),
-            'description' => $request->string('description'),
+            ...$request->validated(),
             'customer_id' => $user->getKey(),
-            'priority' => $request->enum('priority', TicketPriority::class),
-            'category_id' => $request->integer('category_id'),
         ]);
 
         $ticket = $createTicket->execute($ticketData);
@@ -48,9 +45,11 @@ final class TicketController extends Controller
     ): JsonResponse {
         $ticket = Ticket::query()->findOrFail($ticketId);
 
+        $ticketData = UpdateTicketData::from($request->validated());
+
         $updatedTicket = $updateTicketAction->execute(
             ticket: $ticket,
-            attributes: $request->validated(),
+            attributes: $ticketData,
         );
 
         return response()->json([
