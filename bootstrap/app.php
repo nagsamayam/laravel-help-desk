@@ -3,6 +3,7 @@
 use App\Exceptions\IdempotencyConflictException;
 use App\Exceptions\IdempotencyInFlightException;
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\IdempotentRequest;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'roles' => CheckRole::class,
+            'idempotent' => IdempotentRequest::class,
+            'idempotency' => IdempotentRequest::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

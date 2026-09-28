@@ -22,7 +22,7 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('tickets')
-        ->middleware(['auth:api', 'roles:'.Role::Customer->value])
+        ->middleware(['auth:api', 'roles:'.Role::Customer->value, 'idempotent'])
         ->group(function () {
             Route::get('/{ticket}', [TicketController::class, 'show']);
             Route::post('/', [TicketController::class, 'store']);
