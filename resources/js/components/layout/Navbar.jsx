@@ -5,7 +5,7 @@ import { Menu, LogOut, User, ShieldCheck, Ticket, PlusCircle } from 'lucide-reac
 import { Button } from '@/components/ui/Button';
 
 export function Navbar({ onOpenCreateTicket }) {
-    const { user, logout, isAgent } = useAuthStore();
+    const { user, logout, isAgent, canCreateTicket } = useAuthStore();
     const { toggleSidebar } = useUiStore();
 
     return (
@@ -32,15 +32,17 @@ export function Navbar({ onOpenCreateTicket }) {
             </div>
 
             <div className="flex items-center gap-3">
-                <Button
-                    size="sm"
-                    variant="default"
-                    onClick={onOpenCreateTicket}
-                    className="gap-1.5 shadow-sm shadow-indigo-600/20"
-                >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>New Ticket</span>
-                </Button>
+                {canCreateTicket() && (
+                    <Button
+                        size="sm"
+                        variant="default"
+                        onClick={onOpenCreateTicket}
+                        className="gap-1.5 shadow-sm shadow-indigo-600/20"
+                    >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>New Ticket</span>
+                    </Button>
+                )}
 
                 <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-3">
                     <div className="flex flex-col text-right hidden sm:flex">

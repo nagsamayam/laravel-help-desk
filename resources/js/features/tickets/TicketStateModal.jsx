@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
+import { useAuthStore } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
 import { extractApiErrors } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
@@ -10,13 +11,31 @@ import { Select, Textarea } from '@/components/ui/Input';
 
 export function TicketStateModal({ isOpen, onClose, ticket }) {
     const queryClient = useQueryClient();
+    const { isAgent } = useAuthStore();
     const { addToast } = useUiStore();
 
-    const [actionType, setActionType] = useState('transition');
+    const isCustomerUser = !isAgent();
+    const isClosedOrResolved = ticket && ['CLOSED', 'RESOLVED'].includes(String(ticket.status).toUpperCase());
+
+    const defaultAction = isCustomerUser ? (isClosedOrResolved ? 'reopen' : 'close') : 'transition';
+    const [actionType, setActionType] = useState(defaultAction);
     const [targetStatus, setTargetStatus] = useState('IN_PROGRESS');
     const [reason, setReason] = useState('');
     const [serverError, setServerError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
+
+    useEffect(() => {
+        if (isOpen && ticket) {
+            const initialAction = !isAgent() ? (['CLOSED', 'RESOLVED'].includes(String(ticket.status).toUpperCase()) ? 'reopen' : 'close') : 'transition';
+            setActionType(initialAction);
+            if (initialAction === 'close') setTargetStatus('CLOSED');
+            else if (initialAction === 'reopen') setTargetStatus('OPEN');
+            else setTargetStatus('IN_PROGRESS');
+            setReason('');
+            setServerError('');
+            setFieldErrors({});
+        }
+    }, [isOpen, ticket]);
 
     const transitionMutation = useMutation({
         mutationFn: async ({ ticketId, type, status, reasonText }) => {
@@ -103,10 +122,20 @@ export function TicketStateModal({ isOpen, onClose, ticket }) {
                             if (serverError) setServerError('');
                         }}
                     >
-                        <option value="transition">Custom State Transition</option>
-                        <option value="resolve">Resolve Ticket (Command)</option>
-                        <option value="close">Close Ticket (Command)</option>
-                        <option value="reopen">Reopen Ticket (Command)</option>
+                        {isAgent() ? (
+                            <>
+                                <option value="transition">Custom State Transition</option>
+                                <option value="resolve">Resolve Ticket (Command)</option>
+                                <option value="close">Close Ticket (Command)</option>
+                                <option value="reopen">Reopen Ticket (Command)</option>
+                            </>
+                        ) : (
+                            isClosedOrResolved ? (
+                                <option value="reopen">Reopen Ticket</option>
+                            ) : (
+                                <option value="close">Close Ticket</option>
+                            )
+                        )}
                     </Select>
                 </div>
 

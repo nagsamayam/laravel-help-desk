@@ -17,7 +17,7 @@ import { TicketAssignModal } from './TicketAssignModal';
 import { TicketRoutingModal } from './TicketRoutingModal';
 
 export function TicketDetail({ ticketId, onBack }) {
-    const { isAgent, isAdmin } = useAuthStore();
+    const { user, isAgent, isAdmin, isCustomer, canChangeTicketState, canViewAuditLogs } = useAuthStore();
     const [isStateModalOpen, setIsStateModalOpen] = useState(false);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [isRoutingModalOpen, setIsRoutingModalOpen] = useState(false);
@@ -67,15 +67,23 @@ export function TicketDetail({ ticketId, onBack }) {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setIsStateModalOpen(true)}
-                        className="gap-1.5"
-                    >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Transition State</span>
-                    </Button>
+                    {canChangeTicketState(ticket) && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsStateModalOpen(true)}
+                            className="gap-1.5"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>
+                                {isAgent()
+                                    ? 'Transition State'
+                                    : ['CLOSED', 'RESOLVED'].includes(String(ticket.status).toUpperCase())
+                                    ? 'Reopen Ticket'
+                                    : 'Close Ticket'}
+                            </span>
+                        </Button>
+                    )}
 
                     {isAgent() && (
                         <>
@@ -153,7 +161,7 @@ export function TicketDetail({ ticketId, onBack }) {
 
             {/* Tabs Section: Discussion, Status History, Audit Logs */}
             <Tabs defaultValue="discussion" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 max-w-md">
+                <TabsList className={`grid w-full ${canViewAuditLogs() ? 'grid-cols-3 max-w-md' : 'grid-cols-2 max-w-xs'}`}>
                     <TabsTrigger value="discussion" className="gap-1.5">
                         <MessageSquare className="w-3.5 h-3.5" />
                         <span>Discussion</span>
@@ -162,10 +170,12 @@ export function TicketDetail({ ticketId, onBack }) {
                         <History className="w-3.5 h-3.5" />
                         <span>Status History</span>
                     </TabsTrigger>
-                    <TabsTrigger value="audit" className="gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>Audit Trail</span>
-                    </TabsTrigger>
+                    {canViewAuditLogs() && (
+                        <TabsTrigger value="audit" className="gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Audit Trail</span>
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="discussion">
@@ -176,9 +186,11 @@ export function TicketDetail({ ticketId, onBack }) {
                     <TicketStatusHistoryTimeline ticketId={ticket.id} />
                 </TabsContent>
 
-                <TabsContent value="audit">
-                    <TicketAuditLogs ticketId={ticket.id} />
-                </TabsContent>
+                {canViewAuditLogs() && (
+                    <TabsContent value="audit">
+                        <TicketAuditLogs ticketId={ticket.id} />
+                    </TabsContent>
+                )}
             </Tabs>
 
             {/* Modals */}
