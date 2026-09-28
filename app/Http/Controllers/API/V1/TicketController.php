@@ -22,29 +22,41 @@ use Illuminate\Http\Response;
 
 final class TicketController extends Controller
 {
-    public function store(CreateTicketRequest $request, CreateTicketAction $createTicket, IdempotencyManager $idempotency): JsonResponse
-    {
+    public function store(
+        CreateTicketRequest $request,
+        CreateTicketAction $createTicket,
+        IdempotencyManager $idempotency
+    ): JsonResponse {
+        $user = $request->user();
+        $validated = $request->validated();
 
         $ticketData = CreateTicketData::from([
             'idempotency_key' => $request->idempotencyKey(),
             'subject' => $request->string('subject'),
             'description' => $request->string('description'),
-            'customer_id' => $request->user()->getKey(),
+            'customer_id' => $user->getKey(),
             'priority' => $request->enum('priority', TicketPriority::class),
             'category_id' => $request->integer('category_id'),
         ]);
 
-        $result = $idempotency->execute(scopeType: 'user', scopeId: (int) $request->user()->getKey(), operation: 'tickets.create', key: $request->idempotencyKey(), requestPayload: $request->validated(), callback: function () use ($request, $createTicket, $ticketData): IdempotencyResult {
-            $ticket = $createTicket->execute($ticketData);
+        $result = $idempotency->execute(
+            scopeType: 'user',
+            scopeId: $user->getKey(),
+            operation: 'tickets.create',
+            key: $request->idempotencyKey(),
+            requestPayload: $validated,
+            callback: function () use ($request, $createTicket, $ticketData): IdempotencyResult {
+                $ticket = $createTicket->execute($ticketData);
 
-            return new IdempotencyResult(
-                status: Response::HTTP_CREATED,
-                body: ['data' => (new TicketResource($ticket))->resolve($request)],
-                replayed: false,
-                resourceType: 'ticket',
-                resourceId: $ticket->getKey()
-            );
-        }, );
+                return new IdempotencyResult(
+                    status: Response::HTTP_CREATED,
+                    body: ['data' => (new TicketResource($ticket))->resolve($request)],
+                    replayed: false,
+                    resourceType: 'ticket',
+                    resourceId: $ticket->getKey()
+                );
+            }
+        );
 
         return response()
             ->json($result->body, $result->status)
@@ -53,44 +65,40 @@ final class TicketController extends Controller
 
     public function update(
         UpdateTicketRequest $request,
-        Ticket $ticket,
+        int $ticketId,
         UpdateTicketAction $updateTicketAction,
         IdempotencyManager $idempotency,
     ): JsonResponse {
+        $validated = $request->validated();
+
         $result = $idempotency->execute(
             scopeType: 'user',
-            scopeId: (int) $request->user()->getKey(),
+            scopeId: $request->user()->getKey(),
             operation: 'tickets.update',
             key: $request->idempotencyKey(),
-            requestPayload: $request->validated(),
-            callback: function () use (
-                $request,
-                $ticket,
-                $updateTicketAction,
-            ): IdempotencyResult {
-                $ticket = $updateTicketAction->execute(
+            requestPayload: $validated,
+            callback: function () use ($request, $ticketId, $updateTicketAction, $validated): IdempotencyResult {
+                // Fresh database fetch inside the transaction retry block ensures fresh state
+                $ticket = Ticket::query()->findOrFail($ticketId);
+
+                $updatedTicket = $updateTicketAction->execute(
                     ticket: $ticket,
-                    attributes: $request->validated(),
+                    attributes: $validated,
                 );
 
                 return new IdempotencyResult(
-                    status: 200,
-                    body: [
-                        'data' => (new TicketResource($ticket))->resolve($request),
-                    ],
+                    status: Response::HTTP_OK,
+                    body: ['data' => (new TicketResource($updatedTicket))->resolve($request)],
                     replayed: false,
                     resourceType: 'ticket',
-                    resourceId: $ticket->getKey(),
+                    resourceId: $updatedTicket->getKey(),
                 );
             },
         );
 
         return response()
             ->json($result->body, $result->status)
-            ->header(
-                'Idempotency-Replayed',
-                $result->replayed ? 'true' : 'false',
-            );
+            ->header('Idempotency-Replayed', $result->replayed ? 'true' : 'false');
     }
 
     public function destroy(
@@ -101,25 +109,30 @@ final class TicketController extends Controller
     ): JsonResponse {
         $result = $idempotency->execute(
             scopeType: 'user',
-            scopeId: (int) $request->user()->getKey(),
+            scopeId: $request->user()->getKey(),
             operation: 'tickets.delete',
-            key: trim((string) $request->header('Idempotency-Key')),
-            requestPayload: [
-                'ticket_id' => $ticketId,
-            ],
-            callback: function () use (
-                $ticketId,
-                $deleteTicketAction,
-            ): IdempotencyResult {
-                $ticket = Ticket::query()->findOrFail($ticketId);
+            key: $request->idempotencyKey(),
+            requestPayload: ['ticket_id' => $ticketId],
+            callback: function () use ($ticketId, $deleteTicketAction): IdempotencyResult {
+                // Use findWithTrashed() or conditional lookup to maintain idempotency after deletion
+                $ticket = Ticket::query()->find($ticketId);
+
+                // If it's already missing/deleted, return a clean success array directly to satisfy the retry replay contract
+                if ($ticket === null) {
+                    return new IdempotencyResult(
+                        status: Response::HTTP_OK,
+                        body: ['message' => 'Ticket deleted successfully.'],
+                        replayed: false,
+                        resourceType: 'ticket',
+                        resourceId: $ticketId,
+                    );
+                }
 
                 $deleteTicketAction->execute($ticket);
 
                 return new IdempotencyResult(
-                    status: 200,
-                    body: [
-                        'message' => 'Ticket deleted successfully.',
-                    ],
+                    status: Response::HTTP_OK,
+                    body: ['message' => 'Ticket deleted successfully.'],
                     replayed: false,
                     resourceType: 'ticket',
                     resourceId: $ticketId,
@@ -129,13 +142,10 @@ final class TicketController extends Controller
 
         return response()
             ->json($result->body, $result->status)
-            ->header(
-                'Idempotency-Replayed',
-                $result->replayed ? 'true' : 'false',
-            );
+            ->header('Idempotency-Replayed', $result->replayed ? 'true' : 'false');
     }
 
-    public function show(Ticket $ticket)
+    public function show(Ticket $ticket): TicketResource
     {
         return new TicketResource($ticket);
     }

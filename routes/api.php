@@ -26,8 +26,8 @@ Route::prefix('v1')->group(function () {
         ->group(function () {
             Route::get('/{ticket}', [TicketController::class, 'show']);
             Route::post('/', [TicketController::class, 'store']);
-            Route::put('/{ticket}', [TicketController::class, 'update']);
-            Route::delete('/{ticket}', [TicketController::class, 'destroy']);
+            Route::put('/{ticketId}', [TicketController::class, 'update']);
+            Route::delete('/{ticketId}', [TicketController::class, 'destroy']);
         });
 
     Route::middleware([

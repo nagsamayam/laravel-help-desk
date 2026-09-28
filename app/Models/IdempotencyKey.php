@@ -6,8 +6,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Prunable;
 
 #[Fillable([
     'scope_type',
@@ -24,14 +24,18 @@ use Illuminate\Database\Eloquent\Prunable;
 ])]
 class IdempotencyKey extends Model
 {
-    use Prunable;
+    use MassPrunable;
+
+    public const CREATED_AT = 'created_at';
+
+    public const UPDATED_AT = null;
 
     protected function casts(): array
     {
         return [
             'response_body' => 'array',
-            'expires_at' => 'datetime',
-            'completed_at' => 'datetime',
+            'expires_at' => 'immutable_datetime',
+            'completed_at' => 'immutable_datetime',
         ];
     }
 

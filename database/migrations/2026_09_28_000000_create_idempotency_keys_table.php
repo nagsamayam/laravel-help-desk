@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('resource_id', 64)->nullable();
             $table->timestamp('expires_at');
             $table->timestamp('completed_at')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->nullable();
 
             $table->unique(
                 ['scope_type', 'scope_id', 'operation', 'key_hash'],
