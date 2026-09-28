@@ -6,13 +6,19 @@ namespace App\Models;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Observers\TicketObserver;
+use App\Specifications\Ticket\TicketSpecification;
 use App\States\Ticket\TicketState;
 use Database\Factories\TicketFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy([TicketObserver::class])]
 #[Fillable(
     'subject',
     'description',
@@ -55,6 +61,11 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(TicketMessage::class);
+    }
+
     public function state(): TicketState
     {
         return TicketState::for($this);
@@ -63,5 +74,14 @@ class Ticket extends Model
     public function transitionTo(TicketStatus $targetStatus): self
     {
         return $this->state()->transitionTo($targetStatus);
+    }
+
+    /**
+     * @param  Builder<Ticket>  $query
+     * @return Builder<Ticket>
+     */
+    public function scopeMatching(Builder $query, TicketSpecification $specification): Builder
+    {
+        return $specification->apply($query);
     }
 }
