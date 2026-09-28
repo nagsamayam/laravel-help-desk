@@ -77,6 +77,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Ticket::class, 'customer_id');
     }
 
+    public function assignedTickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      */

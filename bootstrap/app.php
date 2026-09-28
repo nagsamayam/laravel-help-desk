@@ -85,6 +85,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 Response::HTTP_FORBIDDEN => 'UNAUTHORIZED',
                 Response::HTTP_NOT_FOUND => 'NOT_FOUND',
                 Response::HTTP_CONFLICT => 'CONFLICT',
+                Response::HTTP_UNPROCESSABLE_ENTITY => 'UNPROCESSABLE_ENTITY',
                 Response::HTTP_TOO_MANY_REQUESTS => 'RATE_LIMITED',
                 Response::HTTP_SERVICE_UNAVAILABLE => 'SERVICE_UNAVAILABLE',
                 default => 'INTERNAL_ERROR',

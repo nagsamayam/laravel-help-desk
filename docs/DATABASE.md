@@ -71,7 +71,7 @@ Fields:
 - resource_id
 - expires_at
 - completed_at
-- timestamps
+- created_at
 
 Constraints/indexes:
 

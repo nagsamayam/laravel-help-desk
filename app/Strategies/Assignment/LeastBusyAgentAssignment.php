@@ -44,7 +44,7 @@ final class LeastBusyAgentAssignment implements AssignmentStrategy
 
         return User::query()
             ->where('role', Role::Agent)
-            ->withCount(['tickets as active_tickets_count' => function (Builder $query): void {
+            ->withCount(['assignedTickets as active_tickets_count' => function (Builder $query): void {
                 $query->whereIn('status', $this->activeStatuses());
             }])
             ->orderBy('active_tickets_count', 'asc')
