@@ -11,6 +11,7 @@ use App\Models\Ticket;
 use App\Routing\TicketRouter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 final class TicketRoutingController extends Controller
 {
@@ -18,6 +19,8 @@ final class TicketRoutingController extends Controller
         RouteTicketRequest $request,
         Ticket $ticket,
     ): JsonResponse {
+        Gate::authorize('route', $ticket);
+
         $persist = $request->boolean('persist', true);
         $router = TicketRouter::createDefault();
 

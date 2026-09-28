@@ -37,9 +37,9 @@ Route::prefix('v1')->group(function () {
             ->middleware('idempotent');
 
         // Ticket update & delete (Idempotent)
-        Route::put('/tickets/{ticketId}', [TicketController::class, 'update'])
+        Route::put('/tickets/{ticket}', [TicketController::class, 'update'])
             ->middleware('idempotent');
-        Route::delete('/tickets/{ticketId}', [TicketController::class, 'destroy'])
+        Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])
             ->middleware('idempotent');
 
         // Ticket state lifecycle transitions

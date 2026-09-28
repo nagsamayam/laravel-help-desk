@@ -14,17 +14,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 final class TicketMessageController extends Controller
 {
     public function index(Request $request, Ticket $ticket): AnonymousResourceCollection
     {
+        Gate::authorize('viewMessages', $ticket);
+
         $user = $request->user();
-
-        if ($user !== null && $user->hasRole(Role::Customer) && $ticket->customer_id !== $user->id) {
-            abort(Response::HTTP_FORBIDDEN, 'You are not authorized to view messages for this ticket.');
-        }
-
         $query = $ticket->messages()->with('user');
 
         if ($user !== null && $user->hasRole(Role::Customer)) {
@@ -41,15 +39,14 @@ final class TicketMessageController extends Controller
         Ticket $ticket,
         AddTicketMessageAction $action,
     ): JsonResponse {
+        Gate::authorize('addMessage', $ticket);
+
         $user = $request->user();
 
-        if ($user !== null && $user->hasRole(Role::Customer)) {
-            if ($ticket->customer_id !== $user->id) {
-                abort(Response::HTTP_FORBIDDEN, 'You are not authorized to add messages to this ticket.');
-            }
-            $isInternal = false;
-        } else {
-            $isInternal = (bool) $request->input('is_internal', false);
+        $isInternal = false;
+        if ($request->boolean('is_internal')) {
+            Gate::authorize('addInternalNote', $ticket);
+            $isInternal = true;
         }
 
         $message = $action->execute(

@@ -32,11 +32,14 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 
 final class TicketController extends Controller
 {
     public function index(FilterTicketsRequest $request): AnonymousResourceCollection
     {
+        Gate::authorize('viewAny', Ticket::class);
+
         $user = $request->user();
         $query = Ticket::query()->with(['category', 'customer', 'assignee']);
 
@@ -99,6 +102,8 @@ final class TicketController extends Controller
         CreateTicketRequest $request,
         CreateTicketAction $createTicket,
     ): JsonResponse {
+        Gate::authorize('create', Ticket::class);
+
         $user = $request->user();
 
         $ticketData = CreateTicketData::from([
@@ -115,10 +120,10 @@ final class TicketController extends Controller
 
     public function update(
         UpdateTicketRequest $request,
-        int $ticketId,
+        Ticket $ticket,
         UpdateTicketAction $updateTicketAction,
     ): JsonResponse {
-        $ticket = Ticket::query()->findOrFail($ticketId);
+        Gate::authorize('update', $ticket);
 
         $ticketData = UpdateTicketData::from($request->validated());
 
@@ -134,14 +139,12 @@ final class TicketController extends Controller
 
     public function destroy(
         TicketRequest $request,
-        int $ticketId,
+        Ticket $ticket,
         DeleteTicketAction $deleteTicketAction,
     ): JsonResponse {
-        $ticket = Ticket::query()->find($ticketId);
+        Gate::authorize('delete', $ticket);
 
-        if ($ticket !== null) {
-            $deleteTicketAction->execute($ticket);
-        }
+        $deleteTicketAction->execute($ticket);
 
         return response()->json([
             'message' => 'Ticket deleted successfully.',
@@ -150,6 +153,8 @@ final class TicketController extends Controller
 
     public function show(Ticket $ticket): TicketResource
     {
+        Gate::authorize('view', $ticket);
+
         return new TicketResource($ticket);
     }
 }

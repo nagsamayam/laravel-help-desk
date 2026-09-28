@@ -6,6 +6,7 @@ namespace App\Http\Requests\V1;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ class FilterTicketsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->can('viewAny', Ticket::class) ?? false;
     }
 
     /**

@@ -5,6 +5,7 @@ use App\Exceptions\IdempotencyInFlightException;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\IdempotentRequest;
 use App\Http\Responses\ApiResponse;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -56,6 +57,14 @@ return Application::configure(basePath: dirname(__DIR__))
                     code: 'AUTH_UNAUTHORIZED',
                     message: $e->getMessage() ?: 'Unauthenticated.',
                     status: Response::HTTP_UNAUTHORIZED,
+                );
+            }
+
+            if ($e instanceof AuthorizationException) {
+                return ApiResponse::error(
+                    code: 'FORBIDDEN',
+                    message: $e->getMessage() ?: 'This action is unauthorized.',
+                    status: Response::HTTP_FORBIDDEN,
                 );
             }
 

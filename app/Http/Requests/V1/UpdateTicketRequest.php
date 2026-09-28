@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\V1;
 
 use App\Enums\TicketPriority;
+use App\Models\Ticket;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,12 @@ class UpdateTicketRequest extends TicketRequest
      */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        $ticket = $this->route('ticket');
+        if (is_numeric($ticket)) {
+            $ticket = Ticket::query()->find($ticket);
+        }
+
+        return $ticket !== null && ($this->user()?->can('update', $ticket) ?? false);
     }
 
     /**

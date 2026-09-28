@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
 
+use App\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RouteTicketRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        $ticket = $this->route('ticket');
+        if (is_numeric($ticket)) {
+            $ticket = Ticket::query()->find($ticket);
+        }
+
+        return $ticket !== null && ($this->user()?->can('route', $ticket) ?? false);
     }
 
     /**

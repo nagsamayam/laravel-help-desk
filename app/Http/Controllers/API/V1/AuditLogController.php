@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\API\V1;
 
-use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\FilterAuditLogsRequest;
 use App\Http\Resources\V1\AuditLogResource;
@@ -12,12 +11,14 @@ use App\Models\AuditLog;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 final class AuditLogController extends Controller
 {
     public function index(FilterAuditLogsRequest $request): AnonymousResourceCollection
     {
+        Gate::authorize('viewAny', AuditLog::class);
+
         $query = AuditLog::query()->with('user');
 
         if ($request->filled('user_id')) {
@@ -52,11 +53,7 @@ final class AuditLogController extends Controller
 
     public function ticketLogs(Request $request, Ticket $ticket): AnonymousResourceCollection
     {
-        $user = $request->user();
-
-        if ($user === null || $user->hasRole(Role::Customer)) {
-            abort(Response::HTTP_FORBIDDEN, 'You are not authorized to view audit logs for this ticket.');
-        }
+        Gate::authorize('viewAuditLogs', $ticket);
 
         $perPage = min((int) $request->input('per_page', 30), 100);
         $logs = $ticket->auditLogs()
@@ -69,11 +66,7 @@ final class AuditLogController extends Controller
 
     public function show(Request $request, AuditLog $auditLog): AuditLogResource
     {
-        $user = $request->user();
-
-        if ($user === null || $user->hasRole(Role::Customer)) {
-            abort(Response::HTTP_FORBIDDEN, 'You are not authorized to view audit logs.');
-        }
+        Gate::authorize('view', $auditLog);
 
         $auditLog->loadMissing('user');
 

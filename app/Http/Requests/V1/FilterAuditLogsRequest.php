@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
 
-use App\Enums\Role;
+use App\Models\AuditLog;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FilterAuditLogsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user !== null && ($user->hasRole(Role::Admin) || $user->hasRole(Role::Agent));
+        return $this->user()?->can('viewAny', AuditLog::class) ?? false;
     }
 
     /**

@@ -5,10 +5,23 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\Role;
+use App\Models\AuditLog;
+use App\Models\Category;
+use App\Models\Ticket;
+use App\Models\TicketMessage;
+use App\Models\TicketStatusHistory;
+use App\Models\User;
+use App\Policies\AuditLogPolicy;
+use App\Policies\CategoryPolicy;
+use App\Policies\TicketMessagePolicy;
+use App\Policies\TicketPolicy;
+use App\Policies\TicketStatusHistoryPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -34,11 +47,23 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configurePasswordRules();
 
+        $this->configurePolicies();
+
         Model::shouldBeStrict(! $app->isProduction());
 
         $this->configureRateLimiting();
 
         $this->buildRouteMacros();
+    }
+
+    private function configurePolicies(): void
+    {
+        Gate::policy(Ticket::class, TicketPolicy::class);
+        Gate::policy(TicketMessage::class, TicketMessagePolicy::class);
+        Gate::policy(TicketStatusHistory::class, TicketStatusHistoryPolicy::class);
+        Gate::policy(AuditLog::class, AuditLogPolicy::class);
+        Gate::policy(Category::class, CategoryPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
     }
 
     private function configureRateLimiting(): void

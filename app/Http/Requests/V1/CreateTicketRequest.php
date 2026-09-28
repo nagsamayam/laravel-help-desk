@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
 
-use App\Enums\Role;
 use App\Enums\TicketPriority;
+use App\Models\Ticket;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +16,7 @@ class CreateTicketRequest extends TicketRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->hasRole(Role::Customer) ?? false;
+        return $this->user()?->can('create', Ticket::class) ?? false;
     }
 
     /**

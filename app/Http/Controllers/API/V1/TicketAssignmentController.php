@@ -18,6 +18,7 @@ use App\Strategies\Assignment\RoundRobinAssignment;
 use App\Strategies\Assignment\SkillBasedAssignment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 final class TicketAssignmentController extends Controller
 {
@@ -27,6 +28,8 @@ final class TicketAssignmentController extends Controller
         TicketAssignmentService $assignmentService,
         AssignTicketAction $assignTicketAction,
     ): JsonResponse {
+        Gate::authorize('assign', $ticket);
+
         $agentId = $request->input('agent_id');
         $strategyName = $request->input('strategy');
 
