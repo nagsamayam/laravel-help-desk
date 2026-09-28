@@ -82,6 +82,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Ticket::class, 'assigned_to');
     }
 
+    public function ticketStatusHistories(): HasMany
+    {
+        return $this->hasMany(TicketStatusHistory::class, 'changed_by');
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      */

@@ -22,6 +22,7 @@ class TransitionTicketRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::enum(TicketStatus::class)],
+            'reason' => ['nullable', 'string', 'max:500'],
         ];
     }
 }

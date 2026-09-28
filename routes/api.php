@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use App\Enums\Role;
+use App\Http\Controllers\API\V1\AuditLogController;
 use App\Http\Controllers\API\V1\AuthController;
 use App\Http\Controllers\API\V1\TicketAssignmentController;
 use App\Http\Controllers\API\V1\TicketController;
 use App\Http\Controllers\API\V1\TicketMessageController;
 use App\Http\Controllers\API\V1\TicketRoutingController;
 use App\Http\Controllers\API\V1\TicketStateController;
+use App\Http\Controllers\API\V1\TicketStatusHistoryController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -62,5 +64,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/tickets/{ticket}/messages', [TicketMessageController::class, 'index']);
         Route::post('/tickets/{ticket}/messages', [TicketMessageController::class, 'store'])
             ->middleware('idempotent');
+
+        // Ticket status history (domain lifecycle history)
+        Route::get('/tickets/{ticket}/status-history', [TicketStatusHistoryController::class, 'index']);
+        Route::get('/tickets/{ticket}/history', [TicketStatusHistoryController::class, 'index']);
+
+        // Ticket audit logs & global audit logs
+        Route::get('/tickets/{ticket}/audit-logs', [AuditLogController::class, 'ticketLogs']);
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])
+            ->middleware('roles:'.Role::Admin->value.','.Role::Agent->value);
+        Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])
+            ->middleware('roles:'.Role::Admin->value.','.Role::Agent->value);
     });
 });

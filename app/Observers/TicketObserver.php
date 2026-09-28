@@ -6,10 +6,17 @@ namespace App\Observers;
 
 use App\Enums\TicketStatus;
 use App\Models\Ticket;
+use App\Models\TicketStatusHistory;
+use App\Services\Audit\AuditLogger;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 final class TicketObserver
 {
+    public function __construct(
+        private readonly AuditLogger $auditLogger = new AuditLogger,
+    ) {}
+
     public function created(Ticket $ticket): void
     {
         $statusValue = $ticket->status instanceof TicketStatus
@@ -21,6 +28,21 @@ final class TicketObserver
             'customer_id' => $ticket->customer_id,
             'status' => $statusValue,
         ]);
+
+        TicketStatusHistory::create([
+            'ticket_id' => $ticket->id,
+            'from_status' => null,
+            'to_status' => $ticket->status instanceof TicketStatus ? $ticket->status : TicketStatus::from((string) $ticket->status),
+            'changed_by' => Auth::id() ?? $ticket->customer_id,
+            'reason' => 'Ticket created',
+            'created_at' => now(),
+        ]);
+
+        $this->auditLogger->log(
+            action: 'created',
+            auditable: $ticket,
+            newValues: $ticket->attributesToArray(),
+        );
     }
 
     public function updated(Ticket $ticket): void
@@ -39,6 +61,17 @@ final class TicketObserver
                 'from' => $fromValue,
                 'to' => $toValue,
             ]);
+
+            $reason = app()->bound('request') ? request()?->input('reason') : null;
+
+            TicketStatusHistory::create([
+                'ticket_id' => $ticket->id,
+                'from_status' => $previousStatus instanceof TicketStatus ? $previousStatus : TicketStatus::tryFrom((string) $previousStatus),
+                'to_status' => $ticket->status instanceof TicketStatus ? $ticket->status : TicketStatus::from((string) $ticket->status),
+                'changed_by' => Auth::id(),
+                'reason' => is_string($reason) ? $reason : 'Status changed',
+                'created_at' => now(),
+            ]);
         }
 
         if ($ticket->wasChanged('assigned_to')) {
@@ -47,6 +80,19 @@ final class TicketObserver
                 'assigned_to' => $ticket->assigned_to,
             ]);
         }
+
+        $changes = $ticket->getChanges();
+        $original = [];
+        foreach (array_keys($changes) as $key) {
+            $original[$key] = $ticket->getRawOriginal($key);
+        }
+
+        $this->auditLogger->log(
+            action: 'updated',
+            auditable: $ticket,
+            oldValues: $original,
+            newValues: $changes,
+        );
     }
 
     public function deleted(Ticket $ticket): void
@@ -54,5 +100,11 @@ final class TicketObserver
         Log::info('Ticket model deleted', [
             'ticket_id' => $ticket->id,
         ]);
+
+        $this->auditLogger->log(
+            action: 'deleted',
+            auditable: $ticket,
+            oldValues: $ticket->attributesToArray(),
+        );
     }
 }
