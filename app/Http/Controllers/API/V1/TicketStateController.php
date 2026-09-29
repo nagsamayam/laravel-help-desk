@@ -12,6 +12,8 @@ use App\Domain\Ticket\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\TransitionTicketRequest;
 use App\Http\Resources\V1\TicketResource;
+use App\Infrastructure\Idempotency\IdempotencyResource;
+use App\Infrastructure\Idempotency\IdempotencyResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,10 +32,14 @@ final class TicketStateController extends Controller
         $updated = $ticket->transitionTo($targetStatus);
         $updated->loadMissing(['category', 'customer', 'assignee']);
 
-        return response()->json([
-            'data' => (new TicketResource($updated))->resolve($request),
-            'message' => "Ticket transitioned to {$targetStatus->value}.",
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($updated))->resolve($request),
+                'message' => "Ticket transitioned to {$targetStatus->value}.",
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $updated->getKey()),
+        );
     }
 
     public function resolve(
@@ -46,10 +52,14 @@ final class TicketStateController extends Controller
         $resolvedTicket = $action->execute($ticket);
         $resolvedTicket->loadMissing(['category', 'customer', 'assignee']);
 
-        return response()->json([
-            'data' => (new TicketResource($resolvedTicket))->resolve($request),
-            'message' => 'Ticket resolved successfully.',
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($resolvedTicket))->resolve($request),
+                'message' => 'Ticket resolved successfully.',
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $resolvedTicket->getKey()),
+        );
     }
 
     public function close(
@@ -62,10 +72,14 @@ final class TicketStateController extends Controller
         $closedTicket = $action->execute($ticket);
         $closedTicket->loadMissing(['category', 'customer', 'assignee']);
 
-        return response()->json([
-            'data' => (new TicketResource($closedTicket))->resolve($request),
-            'message' => 'Ticket closed successfully.',
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($closedTicket))->resolve($request),
+                'message' => 'Ticket closed successfully.',
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $closedTicket->getKey()),
+        );
     }
 
     public function reopen(
@@ -78,9 +92,13 @@ final class TicketStateController extends Controller
         $reopenedTicket = $action->execute($ticket);
         $reopenedTicket->loadMissing(['category', 'customer', 'assignee']);
 
-        return response()->json([
-            'data' => (new TicketResource($reopenedTicket))->resolve($request),
-            'message' => 'Ticket reopened successfully.',
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($reopenedTicket))->resolve($request),
+                'message' => 'Ticket reopened successfully.',
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $reopenedTicket->getKey()),
+        );
     }
 }

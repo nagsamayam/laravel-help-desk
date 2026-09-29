@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Infrastructure\Idempotency\IdempotencyManager;
+use App\Infrastructure\Idempotency\IdempotencyResponse;
 use App\Infrastructure\Idempotency\IdempotencyResult;
 use Closure;
+use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +37,7 @@ final class IdempotentRequest
             return $next($request);
         }
 
-        $key = trim((string) $request->header('Idempotency-Key', ''));
+        $key = (string) $request->header('Idempotency-Key', '');
 
         if ($key === '') {
             $isRequired = $enforce === true || $enforce === 'required' || $enforce === 'true';
@@ -86,11 +88,16 @@ final class IdempotentRequest
 
                 $body = $this->extractResponseBody($capturedResponse);
                 $headers = $this->extractResponseHeaders($capturedResponse);
+                $resource = $capturedResponse instanceof IdempotencyResponse
+                    ? $capturedResponse->idempotencyResource()
+                    : null;
 
                 return new IdempotencyResult(
                     status: $capturedResponse->getStatusCode(),
                     body: $body,
                     replayed: false,
+                    resourceType: $resource?->type,
+                    resourceId: $resource?->id,
                     headers: $headers,
                 );
             },
@@ -159,6 +166,12 @@ final class IdempotentRequest
     private function resolvePayload(Request $request): array
     {
         $routeParameters = $request->route()?->parameters() ?? [];
+
+        foreach ($routeParameters as $name => $value) {
+            if ($value instanceof UrlRoutable) {
+                $routeParameters[$name] = $value->getRouteKey();
+            }
+        }
 
         return array_merge($routeParameters, $request->all());
     }

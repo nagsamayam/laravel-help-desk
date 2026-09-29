@@ -28,6 +28,8 @@ use App\Http\Requests\V1\FilterTicketsRequest;
 use App\Http\Requests\V1\TicketRequest;
 use App\Http\Requests\V1\UpdateTicketRequest;
 use App\Http\Resources\V1\TicketResource;
+use App\Infrastructure\Idempotency\IdempotencyResource;
+use App\Infrastructure\Idempotency\IdempotencyResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -114,16 +116,21 @@ final class TicketController extends Controller
         $ticket = $createTicket->execute($ticketData);
         $ticket->loadMissing(['category', 'customer', 'assignee']);
 
-        return response()->json([
-            'data' => (new TicketResource($ticket))->resolve($request),
-        ], Response::HTTP_CREATED);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($ticket))->resolve($request),
+            ],
+            status: Response::HTTP_CREATED,
+            resource: new IdempotencyResource('ticket', $ticket->getKey()),
+        );
     }
 
     public function update(
         UpdateTicketRequest $request,
-        Ticket $ticket,
+        string $ticket,
         UpdateTicketAction $updateTicketAction,
     ): JsonResponse {
+        $ticket = Ticket::query()->findOrFail($ticket);
         Gate::authorize('update', $ticket);
 
         $ticketData = UpdateTicketData::from($request->validated());
@@ -134,23 +141,32 @@ final class TicketController extends Controller
         );
         $updatedTicket->loadMissing(['category', 'customer', 'assignee']);
 
-        return response()->json([
-            'data' => (new TicketResource($updatedTicket))->resolve($request),
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($updatedTicket))->resolve($request),
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $updatedTicket->getKey()),
+        );
     }
 
     public function destroy(
         TicketRequest $request,
-        Ticket $ticket,
+        string $ticket,
         DeleteTicketAction $deleteTicketAction,
     ): JsonResponse {
+        $ticket = Ticket::query()->findOrFail($ticket);
         Gate::authorize('delete', $ticket);
 
         $deleteTicketAction->execute($ticket);
 
-        return response()->json([
-            'message' => 'Ticket deleted successfully.',
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'message' => 'Ticket deleted successfully.',
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $ticket->getKey()),
+        );
     }
 
     public function show(Ticket $ticket): TicketResource

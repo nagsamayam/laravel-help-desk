@@ -10,6 +10,8 @@ use App\Domain\Ticket\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\CreateTicketMessageRequest;
 use App\Http\Resources\V1\TicketMessageResource;
+use App\Infrastructure\Idempotency\IdempotencyResource;
+use App\Infrastructure\Idempotency\IdempotencyResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -56,9 +58,13 @@ final class TicketMessageController extends Controller
             isInternal: $isInternal,
         );
 
-        return response()->json([
-            'data' => (new TicketMessageResource($message))->resolve($request),
-            'message' => 'Ticket message added successfully.',
-        ], Response::HTTP_CREATED);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketMessageResource($message))->resolve($request),
+                'message' => 'Ticket message added successfully.',
+            ],
+            status: Response::HTTP_CREATED,
+            resource: new IdempotencyResource('ticket_message', $message->getKey()),
+        );
     }
 }

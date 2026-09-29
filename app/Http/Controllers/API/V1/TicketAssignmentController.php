@@ -16,6 +16,8 @@ use App\Domain\Ticket\Strategies\SkillBasedAssignment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\AssignTicketRequest;
 use App\Http\Resources\V1\TicketResource;
+use App\Infrastructure\Idempotency\IdempotencyResource;
+use App\Infrastructure\Idempotency\IdempotencyResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -38,10 +40,14 @@ final class TicketAssignmentController extends Controller
             $assignedTicket = $assignTicketAction->execute($ticket, $agent);
             $assignedTicket->loadMissing(['category', 'customer', 'assignee']);
 
-            return response()->json([
-                'data' => (new TicketResource($assignedTicket))->resolve($request),
-                'message' => "Ticket assigned to agent [{$agent->full_name}].",
-            ], Response::HTTP_OK);
+            return new IdempotencyResponse(
+                data: [
+                    'data' => (new TicketResource($assignedTicket))->resolve($request),
+                    'message' => "Ticket assigned to agent [{$agent->full_name}].",
+                ],
+                status: Response::HTTP_OK,
+                resource: new IdempotencyResource('ticket', $assignedTicket->getKey()),
+            );
         }
 
         $previousAgentId = $ticket->assigned_to !== null ? (int) $ticket->assigned_to : null;
@@ -52,18 +58,26 @@ final class TicketAssignmentController extends Controller
         $freshTicket->loadMissing(['category', 'customer', 'assignee']);
 
         if ($assignedAgent === null) {
-            return response()->json([
-                'data' => (new TicketResource($freshTicket))->resolve($request),
-                'message' => 'No suitable agent was available for assignment.',
-            ], Response::HTTP_OK);
+            return new IdempotencyResponse(
+                data: [
+                    'data' => (new TicketResource($freshTicket))->resolve($request),
+                    'message' => 'No suitable agent was available for assignment.',
+                ],
+                status: Response::HTTP_OK,
+                resource: new IdempotencyResource('ticket', $freshTicket->getKey()),
+            );
         }
 
         TicketAssigned::dispatch($freshTicket, $assignedAgent, $previousAgentId);
 
-        return response()->json([
-            'data' => (new TicketResource($freshTicket))->resolve($request),
-            'message' => "Ticket automatically assigned to [{$assignedAgent->full_name}] via [{$strategyName}] strategy.",
-        ], Response::HTTP_OK);
+        return new IdempotencyResponse(
+            data: [
+                'data' => (new TicketResource($freshTicket))->resolve($request),
+                'message' => "Ticket automatically assigned to [{$assignedAgent->full_name}] via [{$strategyName}] strategy.",
+            ],
+            status: Response::HTTP_OK,
+            resource: new IdempotencyResource('ticket', $freshTicket->getKey()),
+        );
     }
 
     private function resolveStrategy(string $strategy): AssignmentStrategy

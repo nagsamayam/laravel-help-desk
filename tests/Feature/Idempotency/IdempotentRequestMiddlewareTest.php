@@ -3,11 +3,22 @@
 declare(strict_types=1);
 
 use App\Domain\Identity\Models\User;
+use App\Infrastructure\Idempotency\IdempotencyResource;
+use App\Infrastructure\Idempotency\IdempotencyResponse;
+use App\Infrastructure\Idempotency\Models\IdempotencyKey;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function (): void {
+    Route::post('/test-idempotent-resource', function (): IdempotencyResponse {
+        return new IdempotencyResponse(
+            data: ['result' => 'created'],
+            status: 201,
+            resource: new IdempotencyResource('ticket', 123),
+        );
+    })->middleware(['idempotent']);
+
     Route::post('/test-idempotent-default', function (Request $request): JsonResponse {
         return response()->json([
             'result' => 'created',
@@ -135,4 +146,19 @@ it('supports custom scope and operation with route parameters', function (): voi
     $second->assertOk()
         ->assertHeader('Idempotency-Replayed', 'true')
         ->assertJson(['id' => 'item-42', 'updated' => true]);
+});
+
+it('persists resource metadata from the idempotency response', function (): void {
+    $user = User::factory()->create();
+    $key = 'resource-metadata-key-123';
+
+    $this->actingAs($user, 'api')
+        ->withHeader('Idempotency-Key', $key)
+        ->postJson('/test-idempotent-resource')
+        ->assertCreated();
+
+    $record = IdempotencyKey::query()->firstOrFail();
+
+    expect($record->resource_type)->toBe('ticket')
+        ->and($record->resource_id)->toBe('123');
 });

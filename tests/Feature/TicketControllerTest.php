@@ -7,6 +7,7 @@ use App\Domain\Ticket\Enums\TicketPriority;
 use App\Domain\Ticket\Enums\TicketStatus;
 use App\Domain\Ticket\Models\Category;
 use App\Domain\Ticket\Models\Ticket;
+use App\Infrastructure\Idempotency\Models\IdempotencyKey;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 it('creates a ticket and returns a non-replayed response', function (): void {
@@ -36,6 +37,10 @@ it('creates a ticket and returns a non-replayed response', function (): void {
     expect(Ticket::query()->count())->toBe(1);
 
     $ticket = Ticket::query()->first();
+    $idempotencyRecord = IdempotencyKey::query()->firstOrFail();
+
+    expect($idempotencyRecord->resource_type)->toBe('ticket')
+        ->and($idempotencyRecord->resource_id)->toBe((string) $ticket->id);
 
     expect($ticket)
         ->customer_id->toBe($user->id)
@@ -156,4 +161,39 @@ it('allows the same idempotency key for different authenticated users', function
         ->assertHeader('Idempotency-Replayed', 'false');
 
     expect(Ticket::query()->count())->toBe(2);
+});
+
+it('replays a deleted ticket response without requiring route model binding', function (): void {
+    $user = User::factory()->admin()->create();
+    $ticket = Ticket::factory()->create();
+    $token = JWTAuth::fromUser($user);
+
+    $headers = [
+        'Authorization' => "Bearer {$token}",
+        'Idempotency-Key' => 'delete-ticket-replay-01',
+    ];
+
+    $firstResponse = $this
+        ->withHeaders($headers)
+        ->deleteJson("/api/v1/tickets/{$ticket->id}");
+
+    $firstResponse
+        ->assertOk()
+        ->assertHeader('Idempotency-Replayed', 'false');
+
+    expect(Ticket::query()->find($ticket->id))->toBeNull();
+
+    $secondResponse = $this
+        ->withHeaders($headers)
+        ->deleteJson("/api/v1/tickets/{$ticket->id}");
+
+    $secondResponse
+        ->assertOk()
+        ->assertHeader('Idempotency-Replayed', 'true')
+        ->assertExactJson($firstResponse->json());
+
+    $idempotencyRecord = IdempotencyKey::query()->firstOrFail();
+
+    expect($idempotencyRecord->resource_type)->toBe('ticket')
+        ->and($idempotencyRecord->resource_id)->toBe((string) $ticket->id);
 });
