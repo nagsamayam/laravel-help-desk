@@ -261,55 +261,33 @@ php artisan queue:work redis --queue=notifications,default,maintenance
 
 ## REST API Endpoints
 
-All API endpoints are versioned under `/api/v1` and return standardized JSON responses.
+All API endpoints are versioned under `/api/v1` and return standardized JSON envelopes. For full endpoint documentation, request/response schemas, validation rules, and query parameters, see **[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)**.
 
-### Authentication & Users
-- `POST /api/v1/auth/register` — Register a new customer or staff user.
-- `POST /api/v1/auth/login` — Authenticate and receive JWT Bearer token + user payload.
-- `GET /api/v1/auth/me` — Retrieve authenticated user profile.
-- `POST /api/v1/auth/refresh` — Refresh expired JWT token.
-- `POST /api/v1/auth/logout` — Invalidate JWT token.
-- `GET /api/v1/agents` — List available support agents (Staff only).
-- `GET /api/v1/users` — List system users with role filtering (Admin only).
+### Quick Reference Summary
 
-### Ticket Management & Specifications
-- `GET /api/v1/tickets` — Query tickets with composable specification filters:
-  - `status`: `OPEN`, `IN_PROGRESS`, `WAITING_FOR_CUSTOMER`, `RESOLVED`, `CLOSED`
-  - `priority`: `LOW`, `MEDIUM`, `HIGH`, `URGENT`
-  - `open=true`: Only active non-closed tickets
-  - `urgent=true`: High/urgent priority filter
-  - `unassigned=true`: Unassigned tickets
-  - `assigned_to={agent_id}`: Filter by assigned agent
-  - `customer_id={user_id}`: Filter by customer
-  - `overdue=true`: SLA-breached tickets
-- `POST /api/v1/tickets` — Create ticket (`IdempotentRequest` protected).
-- `GET /api/v1/tickets/{id}` — Retrieve ticket details with category, customer, and assignee.
-- `PUT /api/v1/tickets/{id}` — Update ticket metadata (`IdempotentRequest` protected).
-- `DELETE /api/v1/tickets/{id}` — Delete ticket (Admin only).
+| Resource | Method & Path | Description | Access |
+|---|---|---|---|
+| **Auth** | `POST /api/v1/auth/register` | Register customer or agent account | Public |
+| **Auth** | `POST /api/v1/auth/login` | Authenticate and obtain JWT Bearer token | Public |
+| **Auth** | `GET /api/v1/auth/me` | Fetch authenticated user profile | Authenticated |
+| **Users** | `GET /api/v1/agents` | List active support agents | Staff |
+| **Tickets** | `GET /api/v1/tickets` | Specification-filtered ticket list | Authenticated |
+| **Tickets** | `POST /api/v1/tickets` | Create ticket (`IdempotentRequest` protected) | Authenticated |
+| **Tickets** | `GET /api/v1/tickets/{id}` | Retrieve ticket details with relations | Authenticated |
+| **Tickets** | `PUT /api/v1/tickets/{id}` | Update ticket metadata | Staff / Owner |
+| **Lifecycle** | `POST /api/v1/tickets/{id}/transition` | State pattern status transition | Staff |
+| **Lifecycle** | `POST /api/v1/tickets/{id}/resolve` | Resolve ticket with notes | Staff |
+| **Lifecycle** | `POST /api/v1/tickets/{id}/close` | Close ticket | Staff / Owner |
+| **Lifecycle** | `POST /api/v1/tickets/{id}/reopen` | Reopen resolved/closed ticket | Staff / Owner |
+| **Assignment**| `POST /api/v1/tickets/{id}/assign` | Strategy or manual agent assignment | Staff |
+| **Routing** | `POST /api/v1/tickets/{id}/route` | Chain of Responsibility routing pipeline | Staff |
+| **Messages** | `GET /api/v1/tickets/{id}/messages` | List conversation messages | Authenticated |
+| **Messages** | `POST /api/v1/tickets/{id}/messages` | Post reply or internal staff note | Authenticated |
+| **Audit** | `GET /api/v1/tickets/{id}/status-history` | Ticket status progression timeline | Authenticated |
+| **Audit** | `GET /api/v1/tickets/{id}/audit-logs` | Ticket-level mutation audit diffs | Staff |
+| **Audit** | `GET /api/v1/audit-logs` | Browse global system audit trail | Admin |
 
-### Ticket Lifecycle (State Pattern)
-- `POST /api/v1/tickets/{id}/transition` — Transition ticket to target status with reason (`IN_PROGRESS`, `WAITING_FOR_CUSTOMER`, etc.).
-- `POST /api/v1/tickets/{id}/resolve` — Resolve ticket with resolution notes.
-- `POST /api/v1/tickets/{id}/close` — Close resolved ticket.
-- `POST /api/v1/tickets/{id}/reopen` — Reopen closed or resolved ticket.
-
-### Ticket Assignment (Strategy Pattern)
-- `POST /api/v1/tickets/{id}/assign` — Assign ticket using manual agent ID or strategy:
-  - `strategy: "round_robin"`
-  - `strategy: "least_busy"`
-  - `strategy: "skill_based"`
-
-### Ticket Routing (Chain of Responsibility)
-- `POST /api/v1/tickets/{id}/route` — Evaluate routing pipeline (`vip` → `urgent` → `category` → `default`) with optional dry-run execution.
-
-### Conversations & Messages
-- `GET /api/v1/tickets/{id}/messages` — List ticket conversation messages (internal notes hidden from customers).
-- `POST /api/v1/tickets/{id}/messages` — Post reply or internal staff note (`is_internal: true`).
-
-### Lifecycle History & Audit Trail
-- `GET /api/v1/tickets/{id}/status-history` — Retrieve status progression timeline.
-- `GET /api/v1/tickets/{id}/audit-logs` — Retrieve field-level audit mutations for the ticket.
-- `GET /api/v1/audit-logs` — Browse system-wide audit trail with user and action filters (Admin only).
+👉 *Full specifications, query filters, and sample JSON payloads: **[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)***
 
 ---
 
@@ -341,6 +319,7 @@ php artisan test --parallel
 
 Detailed architectural deep-dives and design specifications are maintained in the [`docs/`](docs/) directory:
 
+- [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — Comprehensive REST API endpoint reference, request/response JSON schemas, and query filters.
 - [`docs/PROJECT.md`](docs/PROJECT.md) — Product requirements, user personas, and scope.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — System architecture, delivery layers, and multi-tenancy roadmap.
 - [`docs/DDD_ARCHITECTURE_GUIDE.md`](docs/DDD_ARCHITECTURE_GUIDE.md) — Comprehensive guide on DDD Bounded Contexts, domain service providers, and directory structures.
