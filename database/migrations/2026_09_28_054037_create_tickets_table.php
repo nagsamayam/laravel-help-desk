@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
-use App\Models\Category;
-use App\Models\User;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Category;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

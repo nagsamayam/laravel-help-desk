@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
-use App\Services\Notifications\EmailNotificationSender;
-use App\Services\Notifications\LoggingNotificationSenderDecorator;
-use App\Services\Notifications\MetricsNotificationSenderDecorator;
-use App\Services\Notifications\NotificationResult;
-use App\Services\Notifications\NotificationSenderInterface;
-use App\Services\Notifications\RetryNotificationSenderDecorator;
+use App\Domain\Identity\Models\User;
+use App\Infrastructure\Notifications\EmailNotificationSender;
+use App\Infrastructure\Notifications\LoggingNotificationSenderDecorator;
+use App\Infrastructure\Notifications\MetricsNotificationSenderDecorator;
+use App\Infrastructure\Notifications\NotificationResult;
+use App\Infrastructure\Notifications\NotificationSenderInterface;
+use App\Infrastructure\Notifications\RetryNotificationSenderDecorator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Psr\Log\LoggerInterface;

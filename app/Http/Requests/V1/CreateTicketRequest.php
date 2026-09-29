@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
 
-use App\Enums\TicketPriority;
-use App\Models\Ticket;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 

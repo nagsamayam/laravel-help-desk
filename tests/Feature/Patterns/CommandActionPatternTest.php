@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-use App\Actions\AddTicketMessageAction;
-use App\Actions\AssignTicketAction;
-use App\Actions\CloseTicketAction;
-use App\Actions\CreateTicketAction;
-use App\Actions\DeleteTicketAction;
-use App\Actions\ReopenTicketAction;
-use App\Actions\ResolveTicketAction;
-use App\Actions\UpdateTicketAction;
-use App\DTOs\CreateTicketData;
-use App\DTOs\UpdateTicketData;
-use App\Enums\Role;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
-use App\Events\Tickets\TicketAssigned;
-use App\Events\Tickets\TicketCreated;
-use App\Events\Tickets\TicketMessageAdded;
-use App\Events\Tickets\TicketStatusChanged;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Actions\AddTicketMessageAction;
+use App\Domain\Ticket\Actions\AssignTicketAction;
+use App\Domain\Ticket\Actions\CloseTicketAction;
+use App\Domain\Ticket\Actions\CreateTicketAction;
+use App\Domain\Ticket\Actions\DeleteTicketAction;
+use App\Domain\Ticket\Actions\ReopenTicketAction;
+use App\Domain\Ticket\Actions\ResolveTicketAction;
+use App\Domain\Ticket\Actions\UpdateTicketAction;
+use App\Domain\Ticket\DTOs\CreateTicketData;
+use App\Domain\Ticket\DTOs\UpdateTicketData;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Events\TicketAssigned;
+use App\Domain\Ticket\Events\TicketCreated;
+use App\Domain\Ticket\Events\TicketMessageAdded;
+use App\Domain\Ticket\Events\TicketStatusChanged;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 

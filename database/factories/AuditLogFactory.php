@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\AuditLog;
-use App\Models\Ticket;
-use App\Models\User;
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\API\V1;
 
-use App\Actions\AddTicketMessageAction;
-use App\Enums\Role;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Ticket\Actions\AddTicketMessageAction;
+use App\Domain\Ticket\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\CreateTicketMessageRequest;
 use App\Http\Resources\V1\TicketMessageResource;
-use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

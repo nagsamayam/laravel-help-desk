@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Exceptions\IdempotencyConflictException;
-use App\Exceptions\IdempotencyInFlightException;
-use App\Models\IdempotencyKey;
-use App\Support\Idempotency\IdempotencyManager;
-use App\Support\Idempotency\IdempotencyResult;
-use App\Support\Idempotency\RedisIdempotencyStore;
+use App\Infrastructure\Idempotency\Exceptions\IdempotencyConflictException;
+use App\Infrastructure\Idempotency\Exceptions\IdempotencyInFlightException;
+use App\Infrastructure\Idempotency\IdempotencyManager;
+use App\Infrastructure\Idempotency\IdempotencyResult;
+use App\Infrastructure\Idempotency\Models\IdempotencyKey;
+use App\Infrastructure\Idempotency\RedisIdempotencyStore;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {

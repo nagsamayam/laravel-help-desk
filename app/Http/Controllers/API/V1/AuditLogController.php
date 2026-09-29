@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\API\V1;
 
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Ticket\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\FilterAuditLogsRequest;
 use App\Http\Resources\V1\AuditLogResource;
-use App\Models\AuditLog;
-use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;

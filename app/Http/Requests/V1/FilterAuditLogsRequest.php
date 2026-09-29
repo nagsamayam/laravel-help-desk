@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
 
-use App\Models\AuditLog;
+use App\Domain\Audit\Models\AuditLog;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FilterAuditLogsRequest extends FormRequest

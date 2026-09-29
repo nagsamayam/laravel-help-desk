@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Ticket;
-use App\Models\TicketMessage;
-use App\Models\User;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Models\TicketMessage;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

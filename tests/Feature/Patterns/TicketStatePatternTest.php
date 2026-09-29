@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-use App\Enums\TicketStatus;
-use App\Exceptions\InvalidTicketStateTransitionException;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
-use App\States\Ticket\ClosedTicketState;
-use App\States\Ticket\InProgressTicketState;
-use App\States\Ticket\OpenTicketState;
-use App\States\Ticket\ResolvedTicketState;
-use App\States\Ticket\WaitingForCustomerTicketState;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Exceptions\InvalidTicketStateTransitionException;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\States\ClosedTicketState;
+use App\Domain\Ticket\States\InProgressTicketState;
+use App\Domain\Ticket\States\OpenTicketState;
+use App\Domain\Ticket\States\ResolvedTicketState;
+use App\Domain\Ticket\States\WaitingForCustomerTicketState;
 
 beforeEach(function (): void {
     $this->category = Category::factory()->create();

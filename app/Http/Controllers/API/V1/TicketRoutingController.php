@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\API\V1;
 
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Routing\TicketRouter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\RouteTicketRequest;
 use App\Http\Resources\V1\TicketRoutingResource;
-use App\Models\Ticket;
-use App\Routing\TicketRouter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;

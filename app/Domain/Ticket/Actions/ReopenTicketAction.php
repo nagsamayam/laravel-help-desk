@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Ticket\Actions;
+
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Events\TicketStatusChanged;
+use App\Domain\Ticket\Models\Ticket;
+
+final class ReopenTicketAction
+{
+    public function execute(Ticket $ticket): Ticket
+    {
+        $previousStatus = $ticket->status;
+        $reopenedTicket = $ticket->state()->reopen();
+
+        if ($previousStatus !== TicketStatus::Open) {
+            TicketStatusChanged::dispatch($reopenedTicket, $previousStatus, TicketStatus::Open);
+        }
+
+        return $reopenedTicket;
+    }
+}

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Enums\Role;
-use App\Enums\TicketStatus;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
-use App\Services\Assignment\TicketAssignmentService;
-use App\Strategies\Assignment\LeastBusyAgentAssignment;
-use App\Strategies\Assignment\RoundRobinAssignment;
-use App\Strategies\Assignment\SkillBasedAssignment;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Services\TicketAssignmentService;
+use App\Domain\Ticket\Strategies\LeastBusyAgentAssignment;
+use App\Domain\Ticket\Strategies\RoundRobinAssignment;
+use App\Domain\Ticket\Strategies\SkillBasedAssignment;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Authorization;
 
-use App\Enums\Role;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\TicketMessage;
-use App\Models\User;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Models\TicketMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Authorization;
 
-use App\Enums\Role;
-use App\Models\AuditLog;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\TicketStatusHistory;
-use App\Models\User;
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Models\TicketStatusHistory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\API;
 
-use App\Enums\Role;
-use App\Enums\TicketStatus;
-use App\Models\AuditLog;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
-use App\Services\Audit\AuditLogger;
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Audit\Services\AuditLogger;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Tests\TestCase;

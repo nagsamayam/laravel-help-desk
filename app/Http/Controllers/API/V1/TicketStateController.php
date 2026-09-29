@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\API\V1;
 
-use App\Actions\CloseTicketAction;
-use App\Actions\ReopenTicketAction;
-use App\Actions\ResolveTicketAction;
-use App\Enums\TicketStatus;
+use App\Domain\Ticket\Actions\CloseTicketAction;
+use App\Domain\Ticket\Actions\ReopenTicketAction;
+use App\Domain\Ticket\Actions\ResolveTicketAction;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Ticket;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\TransitionTicketRequest;
 use App\Http\Resources\V1\TicketResource;
-use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use App\Enums\Role;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
-use App\Specifications\Ticket\AssignedToAgentSpecification;
-use App\Specifications\Ticket\CustomerTicketsSpecification;
-use App\Specifications\Ticket\OpenTicketSpecification;
-use App\Specifications\Ticket\OverdueTicketSpecification;
-use App\Specifications\Ticket\PriorityTicketSpecification;
-use App\Specifications\Ticket\StatusTicketSpecification;
-use App\Specifications\Ticket\UnassignedTicketSpecification;
-use App\Specifications\Ticket\UrgentTicketSpecification;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Specifications\AssignedToAgentSpecification;
+use App\Domain\Ticket\Specifications\CustomerTicketsSpecification;
+use App\Domain\Ticket\Specifications\OpenTicketSpecification;
+use App\Domain\Ticket\Specifications\OverdueTicketSpecification;
+use App\Domain\Ticket\Specifications\PriorityTicketSpecification;
+use App\Domain\Ticket\Specifications\StatusTicketSpecification;
+use App\Domain\Ticket\Specifications\UnassignedTicketSpecification;
+use App\Domain\Ticket\Specifications\UrgentTicketSpecification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 

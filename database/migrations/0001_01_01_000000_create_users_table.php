@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Enums\Role;
+use App\Domain\Identity\Enums\Role;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;

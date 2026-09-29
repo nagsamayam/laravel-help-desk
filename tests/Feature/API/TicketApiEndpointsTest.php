@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Enums\Role;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
-use App\Events\Tickets\TicketAssigned;
-use App\Events\Tickets\TicketMessageAdded;
-use App\Events\Tickets\TicketStatusChanged;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Events\TicketAssigned;
+use App\Domain\Ticket\Events\TicketMessageAdded;
+use App\Domain\Ticket\Events\TicketStatusChanged;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Support\Facades\Event;
 
 it('allows listing and filtering tickets via specifications API', function (): void {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\Idempotency\IdempotencyManager;
-use App\Support\Idempotency\IdempotencyResult;
+use App\Infrastructure\Idempotency\IdempotencyManager;
+use App\Infrastructure\Idempotency\IdempotencyResult;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

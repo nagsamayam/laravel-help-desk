@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\V1;
 
-use App\Models\Ticket;
+use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CreateTicketMessageRequest extends FormRequest

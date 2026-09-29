@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Enums\Role;
-use App\Models\AuditLog;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\TicketMessage;
-use App\Models\TicketStatusHistory;
-use App\Models\User;
-use App\Policies\AuditLogPolicy;
-use App\Policies\CategoryPolicy;
-use App\Policies\TicketMessagePolicy;
-use App\Policies\TicketPolicy;
-use App\Policies\TicketStatusHistoryPolicy;
-use App\Policies\UserPolicy;
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Audit\Policies\AuditLogPolicy;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Identity\Policies\UserPolicy;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Models\TicketMessage;
+use App\Domain\Ticket\Models\TicketStatusHistory;
+use App\Domain\Ticket\Policies\CategoryPolicy;
+use App\Domain\Ticket\Policies\TicketMessagePolicy;
+use App\Domain\Ticket\Policies\TicketPolicy;
+use App\Domain\Ticket\Policies\TicketStatusHistoryPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
@@ -44,6 +45,10 @@ class AppServiceProvider extends ServiceProvider
     {
         /** @var Application $app */
         $app = $this->app;
+
+        Factory::guessFactoryNamesUsing(
+            fn (string $modelName) => 'Database\\Factories\\'.class_basename($modelName).'Factory'
+        );
 
         $this->configurePasswordRules();
 

@@ -1,10 +1,10 @@
 <?php
 
-use App\Exceptions\IdempotencyConflictException;
-use App\Exceptions\IdempotencyInFlightException;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\IdempotentRequest;
 use App\Http\Responses\ApiResponse;
+use App\Infrastructure\Idempotency\Exceptions\IdempotencyConflictException;
+use App\Infrastructure\Idempotency\Exceptions\IdempotencyInFlightException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;

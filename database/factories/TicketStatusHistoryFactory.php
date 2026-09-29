@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\TicketStatus;
-use App\Models\Ticket;
-use App\Models\TicketStatusHistory;
-use App\Models\User;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketStatus;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Models\TicketStatusHistory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

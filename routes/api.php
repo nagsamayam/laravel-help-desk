@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Enums\Role;
+use App\Domain\Identity\Enums\Role;
 use App\Http\Controllers\API\V1\AuditLogController;
 use App\Http\Controllers\API\V1\AuthController;
 use App\Http\Controllers\API\V1\TicketAssignmentController;

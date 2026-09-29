@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Enums\Role;
-use App\Enums\TicketPriority;
-use App\Models\Category;
-use App\Models\Ticket;
-use App\Models\User;
-use App\Routing\TicketRouter;
+use App\Domain\Identity\Enums\Role;
+use App\Domain\Identity\Models\User;
+use App\Domain\Ticket\Enums\TicketPriority;
+use App\Domain\Ticket\Models\Category;
+use App\Domain\Ticket\Models\Ticket;
+use App\Domain\Ticket\Routing\TicketRouter;
 
 beforeEach(function (): void {
     $this->category = Category::factory()->create(['name' => 'General Inquiry']);
