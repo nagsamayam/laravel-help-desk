@@ -22,6 +22,7 @@ final class SendTicketNotificationListener
             return;
         }
 
+        $event->ticket->loadMissing('customer');
         $customer = $event->ticket->customer;
         if ($customer !== null) {
             $this->notificationSender->send(
@@ -39,6 +40,7 @@ final class SendTicketNotificationListener
             return;
         }
 
+        $event->ticket->loadMissing('customer');
         $customer = $event->ticket->customer;
         if ($customer !== null) {
             $this->notificationSender->send(
@@ -69,6 +71,8 @@ final class SendTicketNotificationListener
         if ($this->notificationSender === null) {
             return;
         }
+
+        $event->ticket->loadMissing(['customer', 'assignee']);
 
         $recipient = $event->message->user_id === $event->ticket->customer_id
             ? $event->ticket->assignee

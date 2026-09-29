@@ -156,3 +156,38 @@ test('log activity listener logs entries for domain events', function (): void {
         'customer_id' => $customer->id,
     ]));
 });
+
+test('ticket creation end-to-end automatically executes log and notification listeners via event dispatcher', function (): void {
+    Log::spy();
+
+    $sender = Mockery::mock(NotificationSenderInterface::class);
+    app()->instance(NotificationSenderInterface::class, $sender);
+
+    $customer = User::factory()->create(['email' => 'customer.auto@test.com']);
+    $category = Category::factory()->create();
+
+    $sender->shouldReceive('send')
+        ->once()
+        ->with(
+            Mockery::on(fn (User $u) => $u->id === $customer->id),
+            Mockery::pattern('/Ticket #\d+ Created/'),
+            Mockery::pattern('/Your ticket .* has been received/'),
+            Mockery::subset(['event' => 'TicketCreated'])
+        )
+        ->andReturn(NotificationResult::success($customer->email));
+
+    $createAction = new CreateTicketAction;
+    $ticket = $createAction->execute(new CreateTicketData(
+        customer_id: $customer->id,
+        category_id: $category->id,
+        subject: 'Automatic notification check',
+        description: 'Verifying end-to-end listener execution.',
+        priority: TicketPriority::Medium,
+    ));
+
+    Log::shouldHaveReceived('info')->with('Activity: TicketCreated', Mockery::subset([
+        'ticket_id' => $ticket->id,
+        'subject' => 'Automatic notification check',
+        'customer_id' => $customer->id,
+    ]));
+});

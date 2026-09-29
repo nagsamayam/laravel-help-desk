@@ -29,6 +29,7 @@ final class LoggingNotificationSenderDecorator implements NotificationSenderInte
         $result = $this->inner->send($recipient, $title, $content, $context);
 
         $this->logInfo('Notification sent', [
+            'channel' => $result->channel,
             'recipient' => $recipient->email,
             'successful' => $result->successful,
             'message_id' => $result->messageId,

@@ -122,3 +122,15 @@ Schedule::call(function () {
 ### Background Queue Jobs (`app/Domain/{Context}/Jobs/`)
 - Place asynchronous jobs that execute business logic (e.g., `SendOverdueTicketReminderJob`, `ProcessTicketRoutingJob`) inside `app/Domain/{Context}/Jobs/`.
 - Domain jobs should invoke domain Action classes (`CreateTicketAction`, `ResolveTicketAction`, `AssignTicketAction`) to maintain uniform business logic and event triggering.
+
+---
+
+## 6. Domain-Specific Service Providers & Event Registration
+
+To maintain strict modularity and avoid bloating the central `AppServiceProvider`, domain contexts define their own dedicated service providers registered in `bootstrap/providers.php`:
+
+- **`TicketServiceProvider` & `TicketEventServiceProvider` (`app/Domain/Ticket/Providers/`):** Encapsulates ticket domain model policies and maps domain events (`TicketCreated`, `TicketStatusChanged`, `TicketAssigned`, `TicketMessageAdded`) to their respective listeners.
+- **`IdentityServiceProvider` (`app/Domain/Identity/Providers/`):** Registers user and identity authorization policies (`UserPolicy`).
+- **`AuditServiceProvider` (`app/Domain/Audit/Providers/`):** Registers audit log authorization policies (`AuditLogPolicy`).
+- **`NotificationServiceProvider` (`app/Infrastructure/Notifications/Providers/`):** Registers technical notification bindings and decorator pipelines (`NotificationSenderInterface`).
+- **`AppServiceProvider` (`app/Providers/`):** Reserved strictly for application-wide infrastructure (route macros, password policies, rate limiting, and factory discovery conventions).
