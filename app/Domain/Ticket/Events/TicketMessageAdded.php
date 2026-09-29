@@ -7,10 +7,11 @@ namespace App\Domain\Ticket\Events;
 use App\Domain\Ticket\Models\Ticket;
 use App\Domain\Ticket\Models\TicketMessage;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-final class TicketMessageAdded
+final class TicketMessageAdded implements ShouldDispatchAfterCommit
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

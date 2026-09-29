@@ -9,23 +9,46 @@ use App\Domain\Ticket\Events\TicketCreated;
 use App\Domain\Ticket\Events\TicketMessageAdded;
 use App\Domain\Ticket\Events\TicketStatusChanged;
 use App\Infrastructure\Notifications\NotificationSenderInterface;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
 
-final class SendTicketNotificationListener
+final class SendTicketNotificationListener implements ShouldQueue
 {
+    use InteractsWithQueue;
+
+    public string $queue = 'notifications';
+
+    public int $tries = 3;
+
+    /**
+     * @var array<int, int>
+     */
+    public array $backoff = [10, 30, 60];
+
+    public int $timeout = 60;
+
+    public bool $afterCommit = true;
+
     public function __construct(
         private readonly ?NotificationSenderInterface $notificationSender = null,
     ) {}
 
+    private function getSender(): ?NotificationSenderInterface
+    {
+        return $this->notificationSender ?? (app()->bound(NotificationSenderInterface::class) ? app(NotificationSenderInterface::class) : null);
+    }
+
     public function handleTicketCreated(TicketCreated $event): void
     {
-        if ($this->notificationSender === null) {
+        $sender = $this->getSender();
+        if ($sender === null) {
             return;
         }
 
         $event->ticket->loadMissing('customer');
         $customer = $event->ticket->customer;
         if ($customer !== null) {
-            $this->notificationSender->send(
+            $sender->send(
                 recipient: $customer,
                 title: "Ticket #{$event->ticket->id} Created",
                 content: "Your ticket '{$event->ticket->subject}' has been received.",
@@ -36,14 +59,15 @@ final class SendTicketNotificationListener
 
     public function handleTicketStatusChanged(TicketStatusChanged $event): void
     {
-        if ($this->notificationSender === null) {
+        $sender = $this->getSender();
+        if ($sender === null) {
             return;
         }
 
         $event->ticket->loadMissing('customer');
         $customer = $event->ticket->customer;
         if ($customer !== null) {
-            $this->notificationSender->send(
+            $sender->send(
                 recipient: $customer,
                 title: "Ticket #{$event->ticket->id} Status Updated",
                 content: "Status changed to {$event->newStatus->value}.",
@@ -54,11 +78,12 @@ final class SendTicketNotificationListener
 
     public function handleTicketAssigned(TicketAssigned $event): void
     {
-        if ($this->notificationSender === null || $event->agent === null) {
+        $sender = $this->getSender();
+        if ($sender === null || $event->agent === null) {
             return;
         }
 
-        $this->notificationSender->send(
+        $sender->send(
             recipient: $event->agent,
             title: "Ticket #{$event->ticket->id} Assigned to You",
             content: "You have been assigned to '{$event->ticket->subject}'.",
@@ -68,7 +93,8 @@ final class SendTicketNotificationListener
 
     public function handleTicketMessageAdded(TicketMessageAdded $event): void
     {
-        if ($this->notificationSender === null) {
+        $sender = $this->getSender();
+        if ($sender === null) {
             return;
         }
 
@@ -79,7 +105,7 @@ final class SendTicketNotificationListener
             : $event->ticket->customer;
 
         if ($recipient !== null) {
-            $this->notificationSender->send(
+            $sender->send(
                 recipient: $recipient,
                 title: "New reply on Ticket #{$event->ticket->id}",
                 content: $event->message->message,
