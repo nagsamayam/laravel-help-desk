@@ -30,4 +30,32 @@ class TicketMessageFactory extends Factory
             'is_internal' => false,
         ];
     }
+
+    public function internal(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_internal' => true,
+        ]);
+    }
+
+    public function publicMessage(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_internal' => false,
+        ]);
+    }
+
+    public function forTicket(Ticket|int $ticket): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'ticket_id' => $ticket instanceof Ticket ? $ticket->id : $ticket,
+        ]);
+    }
+
+    public function byUser(User|int $user): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'user_id' => $user instanceof User ? $user->id : $user,
+        ]);
+    }
 }

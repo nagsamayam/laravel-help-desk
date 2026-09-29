@@ -47,4 +47,34 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the user is an admin.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => Role::Admin,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is an agent.
+     */
+    public function agent(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => Role::Agent,
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a customer.
+     */
+    public function customer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => Role::Customer,
+        ]);
+    }
 }

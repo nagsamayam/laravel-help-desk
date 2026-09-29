@@ -33,4 +33,26 @@ class TicketStatusHistoryFactory extends Factory
             'created_at' => now(),
         ];
     }
+
+    public function transition(TicketStatus $from, TicketStatus $to): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'from_status' => $from,
+            'to_status' => $to,
+        ]);
+    }
+
+    public function forTicket(Ticket|int $ticket): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'ticket_id' => $ticket instanceof Ticket ? $ticket->id : $ticket,
+        ]);
+    }
+
+    public function byUser(User|int $user): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'changed_by' => $user instanceof User ? $user->id : $user,
+        ]);
+    }
 }
