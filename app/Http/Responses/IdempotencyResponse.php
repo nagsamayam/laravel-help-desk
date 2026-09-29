@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Idempotency;
+namespace App\Http\Responses;
 
+use App\Infrastructure\Idempotency\IdempotencyResource;
 use Illuminate\Http\JsonResponse;
 
 final class IdempotencyResponse extends JsonResponse
 {
+    private IdempotencyResource $resource;
+
     public function __construct(
         array $data,
         int $status,
@@ -17,8 +20,6 @@ final class IdempotencyResponse extends JsonResponse
 
         $this->resource = $resource;
     }
-
-    private IdempotencyResource $resource;
 
     public function idempotencyResource(): IdempotencyResource
     {

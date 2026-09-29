@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use App\Domain\Identity\Models\User;
+use App\Http\Responses\IdempotencyResponse;
 use App\Infrastructure\Idempotency\IdempotencyResource;
-use App\Infrastructure\Idempotency\IdempotencyResponse;
 use App\Infrastructure\Idempotency\Models\IdempotencyKey;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
