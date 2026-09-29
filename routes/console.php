@@ -6,7 +6,6 @@ use App\Domain\Ticket\Actions\CloseTicketAction;
 use App\Domain\Ticket\Jobs\AutoCloseResolvedTicketsJob;
 use App\Domain\Ticket\Jobs\EscalateOverdueTicketsJob;
 use App\Infrastructure\Idempotency\Jobs\PruneExpiredIdempotencyKeysJob;
-use App\Infrastructure\Idempotency\Models\IdempotencyKey;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -33,12 +32,8 @@ Artisan::command('idempotency:prune', function () {
 })->purpose('Prune expired idempotency keys');
 
 // Model pruner (daily)
-Schedule::command(
-    'model:prune',
-    [
-        '--model' => [IdempotencyKey::class]
-    ]
-)->daily()
+Schedule::command('model:prune')
+    ->daily()
     ->withoutOverlapping(30)
     ->onOneServer();
 

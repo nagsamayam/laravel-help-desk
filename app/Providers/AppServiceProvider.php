@@ -31,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
         $app = $this->app;
 
         Factory::guessFactoryNamesUsing(
-            fn(string $modelName) => 'Database\\Factories\\' . class_basename($modelName) . 'Factory'
+            fn (string $modelName) => 'Database\\Factories\\'.class_basename($modelName).'Factory'
         );
 
         $this->configurePasswordRules();
@@ -88,11 +88,11 @@ class AppServiceProvider extends ServiceProvider
 
             return $app->isProduction()
                 ? $rule
-                ->max(64)
-                ->mixedCase()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
+                    ->max(64)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols()
+                    ->uncompromised()
                 : $rule;
         });
     }
@@ -100,8 +100,8 @@ class AppServiceProvider extends ServiceProvider
     private function buildRouteMacros(): void
     {
         Route::macro('roles', function (Role ...$roles) {
-            $roleValues = array_map(fn($role) => $role->value, $roles);
-            $this->middleware(Role::class . ':' . implode(',', $roleValues));
+            $roleValues = array_map(fn ($role) => $role->value, $roles);
+            $this->middleware(Role::class.':'.implode(',', $roleValues));
         });
     }
 }
