@@ -35,7 +35,9 @@ MySQL
 
 ## Core domain
 
-Initial entities:
+For a complete guide on our Domain-Driven Design (DDD) organization, layered boundaries, and implementation patterns, see [DDD Architecture Guide](DDD_ARCHITECTURE_GUIDE.md).
+
+Entities and bounded contexts:
 
 - User
 - Ticket
