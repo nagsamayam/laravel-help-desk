@@ -228,5 +228,8 @@ final class QueueJobsTest extends TestCase
         $this->artisan('idempotency:prune')
             ->expectsOutputToContain('Pruned 0 expired idempotency key(s).')
             ->assertSuccessful();
+
+        $this->artisan('model:prune')
+            ->assertSuccessful();
     }
 }
