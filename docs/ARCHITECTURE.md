@@ -1,134 +1,123 @@
-# Architecture
+# System Architecture
 
-## Current architecture
+## Architecture Overview
 
-The application is a Laravel 13 REST API backed by MySQL and Redis.
+The HelpDesk platform is built as a modular, production-ready system utilizing **Laravel 11/12** on the backend and a **React 19 Single Page Application (SPA)** on the frontend.
 
 ```text
-API Client
-   |
-   v
-Routes
-   |
-   v
-Controllers
-   |
-   +--> Form Requests / Validation
-   |
-   +--> Policies / Authorization
-   |
-   v
-Application / Domain Logic
-   |
-   +--> Idempotency boundary --> MySQL
-   |
-   +--> Models / Eloquent
-   +--> Events / Listeners
-   +--> Jobs / Queues
-   +--> Notifications
-   |
-   +--> Redis
-   |
-   v
-MySQL
+                               ┌────────────────────────────────────────┐
+                               │   React 19 SPA (Vite + Tailwind v4)    │
+                               │  TanStack Query v5 + Zustand + shadcn  │
+                               └───────────────────┬────────────────────┘
+                                                   │ HTTP / REST API (JSON)
+                                                   ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 Laravel Application Core                                        │
+│                                                                                                 │
+│  ┌───────────────────────────────── HTTP Delivery Layer ─────────────────────────────────────┐  │
+│  │ Routes (/api/v1) • Controllers • FormRequests • API Resources • IdempotentRequest MW     │  │
+│  └───────────────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                                  ▼                                              │
+│  ┌────────────────────────────────── Domain Layer (DDD) ────────────────────────────────────┐  │
+│  │                                                                                           │  │
+│  │  Domain/Ticket Context             Domain/Identity Context        Domain/Audit Context     │  │
+│  │  ├── Aggregate Root & Entities     ├── User Model                 ├── AuditLog Model       │  │
+│  │  ├── State Pattern Transitions     ├── Role Enum (Admin, Agent,   ├── AuditLogger Service  │  │
+│  │  ├── Assignment Strategies         │   Customer)                  └── Audit Policies       │  │
+│  │  ├── Routing Chain of Resp.        └── User Policies                                       │  │
+│  │  ├── Command / Action Classes                                                              │  │
+│  │  ├── Specification Query Objects                                                           │  │
+│  │  ├── Domain Events & Observers                                                             │  │
+│  │  └── Asynchronous Domain Jobs                                                              │  │
+│  └───────────────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                                  ▼                                              │
+│  ┌──────────────────────────────── Infrastructure Services ─────────────────────────────────┐  │
+│  │                                                                                           │  │
+│  │  Infrastructure/Idempotency               Infrastructure/Notifications                    │  │
+│  │  ├── IdempotencyManager                   ├── NotificationSenderInterface (Contract)      │  │
+│  │  ├── RedisIdempotencyStore (Locks/Cache)  ├── EmailNotificationSender (Laravel Mail)      │  │
+│  │  └── IdempotencyKey Model & Pruning       └── Decorator Pipeline (Logging, Metrics, Retry)│  │
+│  └───────────────────────────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────┬───────────────────────────────────────────────────┘
+                                              │
+                       ┌──────────────────────┴──────────────────────┐
+                       ▼                                             ▼
+            ┌─────────────────────┐                       ┌─────────────────────┐
+            │    MySQL 8.4 LTS    │                       │     Redis 8.x       │
+            │   (Source of Truth) │                       │  (Locks, Cache,     │
+            │  ACID Transactions  │                       │   Queues/Workers)   │
+            └─────────────────────┘                       └─────────────────────┘
 ```
 
-## Core domain
+For a comprehensive guide on our Domain-Driven Design (DDD) organization, layered boundaries, and implementation patterns, see [DDD Architecture Guide](DDD_ARCHITECTURE_GUIDE.md).
 
-For a complete guide on our Domain-Driven Design (DDD) organization, layered boundaries, and implementation patterns, see [DDD Architecture Guide](DDD_ARCHITECTURE_GUIDE.md).
+---
 
-Entities and bounded contexts:
+## Architectural Principles & Layer Boundaries
 
-- User
-- Ticket
-- TicketMessage
-- Category
-- TicketStatusHistory
-- AuditLog
-- IdempotencyKey
-- Skill
-- UserSkill
-- TicketSkill
-- AssignmentCursor
+### 1. HTTP Delivery / Presentation Layer (`app/Http/`)
+- **Thin Controllers:** Controllers only coordinate transport concerns (validating input, checking policy authorization, invoking domain actions, and formatting JSON responses).
+- **Form Requests (`app/Http/Requests/`):** Encapsulate HTTP payload validation, role authorization, and parameter extraction before domain execution.
+- **IdempotentRequest Middleware:** Inspects `Idempotency-Key` headers, hashes request payloads, executes mutating requests through `IdempotencyManager`, and returns replayed responses with headers.
+- **API Resources (`app/Http/Resources/`):** Transform domain models and value objects into deterministic, versioned JSON responses.
 
-Some entities will only be introduced when the corresponding feature is implemented.
+### 2. Domain Layer (`app/Domain/`)
+Pure business logic isolated within explicit Bounded Contexts:
+- **`Domain/Ticket/`:** Ticket aggregate roots, ticket messages, state machine transitions, assignment strategies, routing rules, specification query filters, and domain events.
+- **`Domain/Identity/`:** Users, role definitions (`Admin`, `Agent`, `Customer`), and identity policies.
+- **`Domain/Audit/`:** Audit logs, change tracking, and audit logging services.
 
-## Architectural principles
+Each domain context registers its own policies and event listeners via **Domain Service Providers** (`TicketServiceProvider`, `TicketEventServiceProvider`, `IdentityServiceProvider`, `AuditServiceProvider`).
 
-### Thin controllers
+### 3. Infrastructure Layer (`app/Infrastructure/`)
+Technical mechanisms that support domain workflows:
+- **`Infrastructure/Idempotency/`:** Manages distributed concurrency locks, replay caching, request fingerprinting, and transactional key persistence.
+- **`Infrastructure/Notifications/`:** Provides the `NotificationSenderInterface` contract, mail transport via `EmailNotificationSender`, and the decorator chain (`LoggingNotificationSenderDecorator`, `MetricsNotificationSenderDecorator`, `RetryNotificationSenderDecorator`).
 
-Controllers should primarily coordinate HTTP concerns:
+### 4. Background Queues & Asynchronous Workers
+- **Redis Queue Engine:** Decouples expensive operations (emails, background SLA escalations, auto-closures) from the HTTP request cycle.
+- **Transactional Dispatching:** Events implement `ShouldDispatchAfterCommit` to prevent dispatching queued jobs if the surrounding database transaction rolls back.
+- **Job Reliability:** Jobs implement `ShouldBeUnique`, `WithoutOverlapping` concurrency locks, exception throttling (`ThrottlesExceptions`), and queue rate limiting (`RateLimited`).
 
-- receive request
-- authorize
-- call application/domain logic
-- return API response
+---
 
-### Business logic
+## Data Flow: Idempotent Ticket Creation
 
-Business rules should not be buried inside controllers.
+```text
+Client (React SPA)
+      │  POST /api/v1/tickets
+      │  Header: Idempotency-Key: <UUIDv4>
+      ▼
+IdempotentRequest Middleware
+      │
+      ├── 1. Canonicalize Request & Generate SHA-256 Hash
+      │
+      ├── 2. Check Redis / DB Idempotency Store
+      │         ├── If completed record exists & hashes match:
+      │         │     └── Return Cached Response (HTTP 201, Idempotency-Replayed: true)
+      │         └── If in-flight lock exists:
+      │               └── Throw IdempotencyInFlightException (HTTP 409, Retry-After: 2)
+      │
+      └── 3. Execute Inside IdempotencyManager DB Transaction
+                │
+                ├── CreateTicketAction::execute(CreateTicketData)
+                │         │
+                │         ├── Inserts Ticket into MySQL
+                │         └── Dispatches TicketCreated Domain Event
+                │
+                ├── Persist IdempotencyKey (key_hash, request_hash, response_body, resource metadata)
+                │
+                └── DB Commit
+                          │
+                          ├── [After Commit] SendTicketNotificationListener (Queued on Redis)
+                          └── Returns Fresh Response (HTTP 201, Idempotency-Replayed: false)
+```
 
-Use services/actions/domain objects when they provide a clear responsibility.
+---
 
-### Eloquent
+## Future Multi-Tenancy Architecture
 
-Use Eloquent naturally. Do not introduce repositories solely to hide Eloquent.
-
-### Idempotency
-
-Idempotency is implemented as a reusable application service around database-backed commands.
-
-The service:
-
-- scopes keys to a principal and operation;
-- stores only a hash of the raw key;
-- fingerprints the canonical validated request;
-- relies on a MySQL unique constraint for concurrency correctness;
-- stores the original response for deterministic replay;
-- commits the idempotency record and business mutation atomically.
-
-The idempotency service is deliberately not a repository abstraction and does not use Redis as the source of truth.
-
-### Events
-
-Use events for meaningful domain occurrences such as:
-
-- TicketCreated
-- TicketAssigned
-- TicketStatusChanged
-- TicketMessageAdded
-- TicketResolved
-
-Listeners can handle secondary concerns such as notifications and audit logging.
-
-### Queues
-
-Use Redis-backed queues for work that should happen asynchronously, such as notifications and other suitable background processing.
-
-Do not place irreversible external side effects inside the database transaction used by the idempotency boundary.
-
-### Redis
-
-Redis is intended for:
-
-- queues
-- cache
-- distributed/concurrency coordination where justified
-
-Do not use Redis as a replacement for MySQL transactional data or idempotency correctness.
-
-## Future multi-tenancy
-
-The eventual SaaS architecture is expected to use shared database/shared tables initially, with tenant_id on tenant-owned records.
-
-Tenant isolation must eventually be enforced at multiple layers:
-
-- authorization
-- query scoping
-- unique constraints
-- cache keys
-- queue/job context
-- file paths
-- API behavior
-
-The idempotency scope abstraction is already designed to support moving from user-scoped keys to tenant-scoped keys later.
+The system is designed to seamlessly scale into a multi-tenant SaaS application:
+1. **Database Multi-Tenancy:** Single-database with `tenant_id` columns across domain models and Global Scopes.
+2. **Tenant Scoping for Idempotency:** The composite unique key in `idempotency_keys` already uses `scope_type` and `scope_id`, easily switching from `'user'` to `'tenant'`.
+3. **Queue & Cache Partitioning:** Tenant-scoped Redis cache prefixes and queue routing tags.

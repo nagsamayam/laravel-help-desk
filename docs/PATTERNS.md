@@ -1,139 +1,191 @@
-# Design Patterns
+# Design Patterns Catalog
 
-The project intentionally uses design patterns as learning exercises when they solve real problems.
+The HelpDesk project implements enterprise design patterns to solve concrete architectural and business requirements, maintaining strict typing, boundary isolation, and high testability.
 
-## Strategy
+---
 
-Planned use:
+## 1. State Pattern (`App\Domain\Ticket\States`)
 
-Ticket assignment.
+### Problem
+Ticket lifecycles have complex transition rules (e.g., a ticket cannot transition directly from `Open` to `Closed` without resolution, or from `Closed` to `InProgress` without reopening). Hardcoding conditionals in controllers or models produces brittle, bug-prone code.
 
-Implementations:
+### Implementation
+- **Base State:** `TicketState` defines abstract capabilities (`canTransitionTo`, `transitionTo`, `resolve`, `close`, `reopen`).
+- **Concrete States:** `OpenTicketState`, `InProgressTicketState`, `WaitingForCustomerTicketState`, `ResolvedTicketState`, `ClosedTicketState`.
+- **Domain Exception:** `InvalidTicketStateTransitionException` is raised when an invalid transition is attempted.
+- **Model Integration:** `Ticket::state()` returns the current state object; `$ticket->transitionTo(TicketStatus::Resolved)` delegates to the state object.
 
-- RoundRobinAssignment
-- LeastBusyAgentAssignment
-- SkillBasedAssignment
+```php
+// app/Domain/Ticket/States/OpenTicketState.php
+final class OpenTicketState extends TicketState
+{
+    public function canTransitionTo(TicketStatus $targetStatus): bool
+    {
+        return in_array($targetStatus, [
+            TicketStatus::InProgess,
+            TicketStatus::WaitingForCustomer,
+            TicketStatus::Resolved,
+            TicketStatus::Closed,
+        ], true);
+    }
+}
+```
 
-Potential future:
+---
 
-- AIAssignmentStrategy
+## 2. Strategy Pattern (`App\Domain\Ticket\Strategies`)
 
-## Factory
+### Problem
+Support tickets need to be assigned to agents based on different algorithmic criteria (Round Robin, Agent Workload, or Agent Skill Match) that can be selected dynamically at runtime.
 
-Potential use:
+### Implementation
+- **Strategy Interface:** `AssignmentStrategy` declares `assign(Ticket $ticket, Collection $availableAgents): ?User`.
+- **Concrete Strategies:**
+  - `RoundRobinAssignment`: Rotates assignments across active agents using database locks/cursors.
+  - `LeastBusyAgentAssignment`: Assigns tickets to the agent with the lowest count of active (`OPEN`, `IN_PROGRESS`) tickets.
+  - `SkillBasedAssignment`: Matches ticket category/keywords with agent domain proficiencies.
+- **Service Orchestrator:** `TicketAssignmentService` manages strategy resolution and execution.
 
-Creating/selecting assignment strategies or notification implementations.
+```php
+// app/Domain/Ticket/Strategies/Assignment/LeastBusyAgentAssignment.php
+final class LeastBusyAgentAssignment implements AssignmentStrategy
+{
+    public function assign(Ticket $ticket, Collection $availableAgents): ?User
+    {
+        return $availableAgents->sortBy(fn (User $agent) => $agent->assignedTickets()
+            ->whereIn('status', [TicketStatus::Open, TicketStatus::InProgess])
+            ->count()
+        )->first();
+    }
+}
+```
 
-Do not create factories where Laravel dependency injection/container configuration already provides a simpler solution.
+---
 
-## State
+## 3. Chain of Responsibility Pattern (`App\Domain\Ticket\Routing`)
 
-Potential use:
+### Problem
+Incoming tickets must be evaluated against a series of business routing rules (VIP customers, urgent outages, category-specific teams, fallback defaults) without coupling rules together or nesting massive `if/else` ladders.
 
-Ticket lifecycle and valid status transitions.
+### Implementation
+- **Handler Interface:** `TicketRoutingRule` with `setNext(TicketRoutingRule $next)` and `handle(Ticket $ticket): ?TicketRoutingDecision`.
+- **Concrete Rules:**
+  - `VipRoutingRule`: Checks if customer belongs to VIP organization tier.
+  - `UrgentPriorityRoutingRule`: Routes critical severity tickets to senior on-call agents.
+  - `CategoryRoutingRule`: Matches department categories (e.g. Billing vs Technical).
+  - `DefaultRoutingRule`: Fallback rule ensuring every ticket receives a routing decision.
+- **Pipeline Builder:** `TicketRouter::buildDefault()` chains handlers in order.
 
-Example states:
+```php
+// app/Domain/Ticket/Routing/TicketRouter.php
+$router = (new VipRoutingRule)
+    ->setNext(new UrgentPriorityRoutingRule)
+    ->setNext(new CategoryRoutingRule)
+    ->setNext(new DefaultRoutingRule);
 
-- Open
-- In Progress
-- Waiting for Customer
-- Resolved
-- Closed
+$decision = $router->handle($ticket);
+```
 
-## Chain of Responsibility
+---
 
-Potential use:
+## 4. Command / Action Pattern (`App\Domain\Ticket\Actions`)
 
-Automatic ticket routing rules.
+### Problem
+Complex business operations (creating a ticket, resolving with audit logs and events, adding messages) should not be bound to HTTP controller lifecycles so they can be reused across API controllers, Artisan CLI commands, background queue jobs, and seeders.
 
-Example:
+### Implementation
+- **Action Classes:** Single-responsibility, immutable use-case actions:
+  - `CreateTicketAction` (accepts `CreateTicketData` DTO)
+  - `UpdateTicketAction` (accepts `UpdateTicketData` DTO)
+  - `ResolveTicketAction`
+  - `CloseTicketAction`
+  - `ReopenTicketAction`
+  - `AssignTicketAction`
+  - `AddTicketMessageAction`
 
-VIP rule → urgent rule → category rule → default rule.
+```php
+// app/Domain/Ticket/Actions/ResolveTicketAction.php
+final readonly class ResolveTicketAction
+{
+    public function execute(Ticket $ticket, string $resolutionNotes): Ticket
+    {
+        $ticket->transitionTo(TicketStatus::Resolved, $resolutionNotes);
+        return $ticket->fresh(['category', 'customer', 'assignee']);
+    }
+}
+```
 
-## Command / Action
+---
 
-Potential use:
+## 5. Decorator Pattern (`App\Infrastructure\Notifications`)
 
-Explicit application actions:
+### Problem
+Outbound notification sending requires cross-cutting concerns (structured logging, dispatch metrics, exponential retry on mail transport errors) without polluting the core `EmailNotificationSender` class.
 
-- CreateTicket
-- ResolveTicket
-- CloseTicket
-- ReopenTicket
-- AssignTicket
-- AddTicketMessage
+### Implementation
+- **Contract:** `NotificationSenderInterface` (`send(...)`).
+- **Core Component:** `EmailNotificationSender` (sends real Laravel Blade `TicketNotificationMail` mailables).
+- **Decorators:**
+  - `LoggingNotificationSenderDecorator`: Logs payload context and result.
+  - `MetricsNotificationSenderDecorator`: Captures execution duration and success rates.
+  - `RetryNotificationSenderDecorator`: Retries transient mail transport exceptions with backoff.
+- **Container Wiring:** Registered in `NotificationServiceProvider` to compose the decorator stack automatically.
 
-`CreateTicket` is an application command/action. When it is idempotent, it executes its database mutation inside the idempotency transaction boundary.
+```text
+NotificationSenderInterface
+       │
+       ▼
+[Logging Decorator] ──> [Metrics Decorator] ──> [Retry Decorator] ──> [EmailNotificationSender]
+```
 
-## Idempotency Manager
+---
 
-Purpose:
+## 6. Specification Pattern (`App\Domain\Ticket\Specifications`)
 
-Provide one reusable boundary for transactional API idempotency without coupling individual domain models to idempotency columns.
+### Problem
+Complex ticket queries (e.g., finding tickets that are urgent OR overdue, assigned to an agent, and not resolved) need to be reusable both in database queries (`Eloquent Builder`) and in-memory evaluation.
 
-Responsibilities:
+### Implementation
+- **Base Specification:** `TicketSpecification` defining `isSatisfiedBy(Ticket $ticket): bool`, `apply(Builder $query): Builder`, `and()`, `or()`, and `not()`.
+- **Concrete Specifications:**
+  - `OpenTicketSpecification`
+  - `StatusTicketSpecification`
+  - `PriorityTicketSpecification`
+  - `UrgentTicketSpecification`
+  - `AssignedToAgentSpecification`
+  - `UnassignedTicketSpecification`
+  - `CustomerTicketsSpecification`
+  - `OverdueTicketSpecification`
+- **Model Macro:** `Ticket::matching(TicketSpecification $spec)` builds the query automatically.
 
-- key validation
-- scoped uniqueness
-- request fingerprinting
-- concurrency handling through the database unique constraint
-- response persistence and replay
-- retention metadata
+```php
+$spec = (new UrgentTicketSpecification())
+    ->or(new OverdueTicketSpecification())
+    ->and(new UnassignedTicketSpecification());
 
-This is treated as a cross-cutting application/infrastructure service rather than a domain pattern forced onto tickets.
+$tickets = Ticket::matching($spec)->get();
+```
 
-## Adapter
+---
 
-Potential use:
+## 7. Events / Observer Pattern (`App\Domain\Ticket\Events`, `App\Domain\Ticket\Observers`)
 
-External providers whose API differs from the application's internal interface.
+### Problem
+Ticket operations trigger secondary side-effects (audit logs, stakeholder emails, webhook dispatches) that should be decoupled from the primary database transaction.
 
-Examples:
+### Implementation
+- **Domain Events:** `TicketCreated`, `TicketStatusChanged`, `TicketAssigned`, `TicketMessageAdded` (implementing `ShouldDispatchAfterCommit`).
+- **Model Observer:** `TicketObserver` listens to Eloquent lifecycle hooks (`created`, `updated`, `deleted`) to generate `AuditLog` and `TicketStatusHistory` records.
+- **Queued Listeners:** `SendTicketNotificationListener` and `LogTicketActivityListener` process asynchronous notifications and system logging on Redis queues.
 
-- email provider
-- Slack
-- SMS provider
+---
 
-## Decorator
+## 8. Idempotency Manager (`App\Infrastructure\Idempotency`)
 
-Potential use:
+### Problem
+Clients submitting mutating API requests over unstable networks may retry requests, potentially causing duplicate tickets or double billing.
 
-Adding cross-cutting behavior around an existing interface without modifying the underlying implementation.
-
-Example learning chain:
-
-LoggingDecorator → MetricsDecorator → NotificationSender
-
-RetryNotificationSender may be used as a learning example, but retry behavior does not have to be implemented as the final notification architecture.
-
-## Events / Observer
-
-Potential use:
-
-Domain events such as TicketCreated and TicketStatusChanged.
-
-Secondary concerns can subscribe without coupling the core ticket operation to every side effect.
-
-## Specification
-
-Potential use:
-
-Reusable, composable ticket filtering/business rules when filtering becomes sufficiently complex.
-
-## Builder
-
-Potential use:
-
-Complex query/report construction where Eloquent scopes or the existing query builder are no longer sufficient.
-
-## Repository
-
-Not a default requirement.
-
-Use only when there is a genuine abstraction need, such as multiple data sources or a complex persistence boundary.
-
-## Pattern rule
-
-Never introduce a pattern only because the pattern exists.
-
-First identify the problem, then choose the pattern that makes the solution clearer.
+### Implementation
+- **Core Coordinator:** `IdempotencyManager` coordinates canonical SHA-256 request hashing, composite MySQL unique constraint locking, and deterministic JSON response caching/replay.
+- **Redis Optimization:** `RedisIdempotencyStore` manages high-speed replay cache and concurrency locks, gracefully falling back to database ACID guarantees.
+- **HTTP Middleware:** `IdempotentRequest` seamlessly wraps routes, handles UUIDv4 `Idempotency-Key` headers, and automatically returns `Idempotency-Replayed: true` on duplicate requests.

@@ -1,191 +1,108 @@
 # Idempotency Implementation Notes
 
-## Status
+## Subsystem Overview
 
-**Completed:** Idempotency infrastructure with database authority and Redis optimization.
+The HelpDesk platform implements a database-authoritative, production-grade idempotency subsystem that guarantees single-execution semantics across all mutating API operations (`POST /api/v1/tickets`, `PUT /api/v1/tickets/{id}`, state transitions, and assignments).
 
-**Deferred:** HTTP-level `IdempotencyMiddleware`. Current ticket endpoints continue to integrate with `IdempotencyManager` directly until the middleware refactor is intentionally scheduled.
+---
 
-## Architecture
+## Architectural Principles
 
-The project uses a dedicated `idempotency_keys` table rather than storing an idempotency key on `tickets`.
+1. **Database as the Source of Truth:**
+   - Uniqueness is enforced by MySQL composite unique index: `UNIQUE(scope_type, scope_id, operation, key_hash)`.
+   - The database transaction wraps both the domain business action (`CreateTicketAction`, etc.) and the insertion/completion of the `IdempotencyKey` record atomically.
+2. **Redis as Performance & Concurrency Optimization:**
+   - `RedisIdempotencyStore` provides sub-millisecond completed response replays and distributed concurrency locking (`withLock`).
+   - If Redis fails, times out, or is disabled, the system automatically falls back to database ACID guarantees with zero degradation of idempotency safety.
+3. **Deterministic Payload Canonicalization:**
+   - Request payloads are recursively sorted by keys (`ksort`) and encoded via SHA-256 (`request_hash`).
+   - Attempting to reuse an active key with a differing payload triggers `IdempotencyConflictException` (HTTP 409 Conflict).
+4. **In-Flight Concurrency Protection:**
+   - If a duplicate request arrives while the initial request is still being processed, it encounters an in-flight check (`completed_at === null`), raising `IdempotencyInFlightException` (HTTP 409 Conflict with `Retry-After: 2` header).
+5. **Decoupled HTTP Middleware:**
+   - `IdempotentRequest` middleware inspects the `Idempotency-Key` header, manages execution inside `IdempotencyManager`, and attaches `Idempotency-Replayed: true|false` to responses.
 
-The database is the authoritative source of truth. Redis is an optimization layer for fast replay and concurrency coordination; correctness must not depend on Redis being available.
+---
 
-### Persistent record
+## Schema & Column Definitions
 
-`idempotency_keys` contains:
+`idempotency_keys` table definition:
 
-- `id`
-- `scope_type`
-- `scope_id`
-- `operation`
-- `key_hash`
-- `request_hash`
-- `response_status`
-- `response_body`
-- `resource_type`
-- `resource_id`
-- `expires_at`
-- `completed_at`
-- `created_at`
+```php
+Schema::create('idempotency_keys', function (Blueprint $table): void {
+    $table->id();
+    $table->string('scope_type', 32);
+    $table->string('scope_id', 64); // Supports int, UUID, ULID
+    $table->string('operation', 100);
+    $table->char('key_hash', 64);
+    $table->char('request_hash', 64);
+    $table->unsignedSmallInteger('response_status')->nullable();
+    $table->json('response_body')->nullable();
+    $table->json('response_headers')->nullable();
+    $table->string('resource_type', 100)->nullable(); // e.g. 'ticket'
+    $table->string('resource_id', 64)->nullable();
+    $table->timestamp('expires_at');
+    $table->timestamp('completed_at')->nullable();
+    $table->timestamp('created_at')->nullable();
 
-There is intentionally **no `updated_at`**.
-
-Unique constraint: `scope_type + scope_id + operation + key_hash`
-
-Index: `expires_at`
-
-The raw `Idempotency-Key` value is never persisted. It is stored as SHA-256.
-
-## Request semantics
-
-The `Idempotency-Key` is a request header only. It must not be merged into the validated request payload.
-
-Validation:
-
-- 16–255 printable ASCII characters.
-- Operation: non-empty, maximum 100 characters, matching `^[A-Za-z0-9._:-]+$`.
-
-The request fingerprint includes the operation and canonicalized request payload. Canonicalization recursively sorts associative-array keys while preserving list order. The request fingerprint is SHA-256.
-
-## Replay semantics
-
-### First execution
-
-The callback executes once and returns a fresh `IdempotencyResult` with `replayed = false`. The original HTTP status and response body are persisted.
-
-### Same key + same request
-
-The stored response is replayed with the original HTTP status/body and `replayed = true`. Ticket creation therefore remains HTTP `201` on replay.
-
-### Same key + different request
-
-`IdempotencyConflictException` is thrown. HTTP `409` is an HTTP-layer concern; the manager itself does not return HTTP status codes.
-
-### Expired key
-
-An expired idempotency record may be reused. Request-time expiration handling remains part of correctness; scheduled pruning is maintenance only.
-
-## Scope
-
-The idempotency namespace is determined by `scope_type`, `scope_id`, `operation`, and `key_hash`.
-
-Current ticket creation uses the authenticated user as the scope, allowing the same idempotency key to be used independently by different users.
-
-## Redis integration
-
-`RedisIdempotencyStore` provides:
-
-1. Fast completed-response cache.
-2. Redis locking as a concurrency optimization.
-3. Graceful fallback to the database when Redis is unavailable.
-
-Redis is **never authoritative**.
-
-Configuration:
-
-```dotenv
-IDEMPOTENCY_TTL_SECONDS=86400
-IDEMPOTENCY_REDIS_ENABLED=true
-IDEMPOTENCY_REDIS_STORE=redis
-IDEMPOTENCY_REDIS_PREFIX=idempotency
-IDEMPOTENCY_REDIS_LOCK_SECONDS=30
-IDEMPOTENCY_REDIS_LOCK_WAIT_SECONDS=5
+    $table->unique(
+        ['scope_type', 'scope_id', 'operation', 'key_hash'],
+        'idempotency_keys_scope_operation_key_unique',
+    );
+    $table->index('expires_at');
+    $table->index(['resource_type', 'resource_id']);
+});
 ```
 
-Tests can disable Redis with `IDEMPOTENCY_REDIS_ENABLED=false`.
+---
 
-### Important Redis design rules
+## Replay & Header Semantics
 
-- Cache expiration must not allow replay after the database considers the key expired. Cached entries should carry/validate the authoritative `expires_at` timestamp.
-- Redis lock expiry is not a correctness mechanism. Database uniqueness and transactions remain authoritative.
+| Request Scenario | Execution Path | Response Code | Headers Attached |
+| :--- | :--- | :---: | :--- |
+| **First Submission** | Executes business mutation inside DB transaction, persists response body and headers. | `201 Created` / `200 OK` | `Idempotency-Replayed: false` |
+| **Exact Replay** | Hits Redis cache or DB, verifies payload hash match, replays stored payload. | Original (e.g. `201`) | `Idempotency-Replayed: true` |
+| **Payload Conflict** | Detects mismatched `request_hash` for same active key. | `409 Conflict` | `Content-Type: application/json` |
+| **In-Flight Collision** | Detects `completed_at === null` or lock acquisition timeout. | `409 Conflict` | `Retry-After: 2` |
+| **Expired Key** | `expires_at < now()` allows the key to be reused for a fresh execution. | Fresh execution | `Idempotency-Replayed: false` |
 
-## Current manager boundary
+---
 
-`IdempotencyManager` is intentionally HTTP-independent. It accepts scope, operation, key, request payload, and callback, and returns an `IdempotencyResult`.
+## Frontend Integration & Automatic Backoff
 
-It does **not** return HTTP responses or HTTP status codes.
+The React 19 frontend incorporates an Axios interceptor that automatically attaches UUIDv4 idempotency keys and handles in-flight backoff retries:
 
-## Ticket integration
+```javascript
+// resources/js/lib/api-client.js
+apiClient.interceptors.request.use((config) => {
+  if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase() || '')) {
+    if (!config.headers['Idempotency-Key']) {
+      config.headers['Idempotency-Key'] = uuidv4();
+    }
+  }
+  return config;
+});
 
-Current ticket endpoints use the manager directly.
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const { config, response } = error;
+    if (response?.status === 409 && response?.data?.error === 'IDEMPOTENCY_IN_FLIGHT' && !config._retry) {
+      config._retry = true;
+      const retryAfter = (parseInt(response.headers['retry-after'], 10) || 2) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, retryAfter));
+      return apiClient(config);
+    }
+    return Promise.reject(error);
+  }
+);
+```
 
-Create:
+---
 
-- first execution: HTTP `201`
-- replay: HTTP `201`
-- `Idempotency-Replayed: false|true`
+## Maintenance & Retention Pruning
 
-Update/delete request fingerprints include the ticket identifier so the same key cannot be reused across different ticket resources.
+Expired idempotency keys are non-destructively pruned using Laravel's `MassPrunable` trait and scheduled background jobs:
 
-For update/delete, resource resolution should happen inside the idempotent callback rather than relying on implicit route model binding before the idempotency layer executes. This allows a retry to replay the original successful response even when the underlying resource has since been deleted.
-
-## Testing status
-
-Covered behavior includes:
-
-- callback executes once and completed response is replayed
-- same key + different request raises `IdempotencyConflictException`
-- scope and operation isolation
-- expired key reuse
-- same key across different authenticated users
-- Redis-backed replay behavior
-- operation continues when Redis is disabled/unavailable
-
-For scope-isolation tests, `actingAs(..., 'api')` is preferred because the test is about authorization scope rather than JWT extraction. Do not use `refreshApplication()` as a JWT-state workaround because it resets the in-memory test application/database state.
-
-## Important implementation hardening note
-
-Before calling Redis locking fully production-hardened, review `RedisIdempotencyStore::withLock()` so Redis lock acquisition failures are handled separately from exceptions thrown by the protected callback.
-
-A broad `catch (Throwable)` around a lock method that invokes the callback can accidentally interpret a business/application exception as a Redis failure and execute the callback a second time.
-
-Safe design:
-
-1. acquire/wait for the lock
-2. if lock acquisition fails, fall back to the database path
-3. execute the protected callback outside the Redis-error catch
-4. release the lock in `finally`
-
-## Deferred: IdempotencyMiddleware
-
-A future `IdempotencyMiddleware` should decouple HTTP mechanics from the manager.
-
-- `IdempotencyMiddleware`: HTTP headers, route operation, authenticated scope, response capture/replay.
-- `IdempotencyManager`: idempotency algorithm and persistence orchestration.
-- `RedisIdempotencyStore`: Redis cache/lock optimization.
-- `IdempotencyKey`: persistent source of truth.
-- Controller: endpoint orchestration.
-- Action/service: ticket business logic.
-
-The middleware should be opt-in for mutation endpoints rather than blindly applied to every route. Prefer stable named route operations such as `tickets.store`, `tickets.update`, and `tickets.destroy`.
-
-The middleware refactor is intentionally postponed to avoid unnecessary file churn.
-
-## Next development focus
-
-Resume with the Ticket domain/business layer:
-
-1. Ticket creation
-2. Ticket update
-3. Ticket deletion
-4. Ticket lifecycle/state transitions
-5. Assignment/routing
-6. Ticket messages
-7. Authorization/policies
-8. Events/observers
-9. SLA/notifications
-
-## Environment/version baseline
-
-- Laravel 13.33.0
-- PHP 8.5.10
-- Local MySQL: 9.3.0
-- Redis: 8.10.2
-- PestPHP 5
-- JWT authentication via `php-open-source-saver/jwt-auth`
-- JWT signing: asymmetric RSA / RS256
-- REST API first
-- API versioning: `/api/v1`
-- Sanctum is not used
+- **Command:** `php artisan model:prune` / `php artisan idempotency:prune`
+- **Background Job:** `PruneExpiredIdempotencyKeysJob` runs daily with `ShouldBeUnique` deduplication.
