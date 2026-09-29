@@ -112,7 +112,7 @@ test('send ticket notification listener interacts with notification sender on do
     $agent = User::factory()->create(['email' => 'agent@test.com', 'role' => Role::Agent]);
     $ticket = Ticket::factory()->create([
         'customer_id' => $customer->id,
-        'assigned_to' => $agent->id,
+        'assigned_to' => null,
         'subject' => 'Payment issue',
     ]);
 
@@ -135,6 +135,16 @@ test('send ticket notification listener interacts with notification sender on do
             Mockery::any()
         )
         ->andReturn(NotificationResult::success($agent->email));
+
+    $sender->shouldReceive('send')
+        ->once()
+        ->with(
+            Mockery::on(fn (User $u) => $u->id === $customer->id),
+            "Agent Assigned to Ticket #{$ticket->id}",
+            Mockery::any(),
+            Mockery::any()
+        )
+        ->andReturn(NotificationResult::success($customer->email));
 
     $listener = new SendTicketNotificationListener($sender);
 

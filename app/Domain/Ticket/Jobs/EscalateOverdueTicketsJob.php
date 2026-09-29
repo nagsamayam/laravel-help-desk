@@ -9,15 +9,17 @@ use App\Domain\Ticket\Enums\TicketStatus;
 use App\Domain\Ticket\Models\Ticket;
 use App\Domain\Ticket\Specifications\OverdueTicketSpecification;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-final class EscalateOverdueTicketsJob implements ShouldQueue
+final class EscalateOverdueTicketsJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -30,10 +32,32 @@ final class EscalateOverdueTicketsJob implements ShouldQueue
 
     public int $timeout = 180;
 
+    public int $uniqueFor = 1800;
+
     public function __construct(
         public readonly ?int $hoursOverdue = 24,
     ) {
         $this->onQueue('maintenance');
+    }
+
+    /**
+     * The unique ID of the job.
+     */
+    public function uniqueId(): string
+    {
+        return 'escalate-overdue-tickets-'.($this->hoursOverdue ?? 24);
+    }
+
+    /**
+     * Get the middleware the job should pass through.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping($this->uniqueId()))->expireAfter(180),
+        ];
     }
 
     /**

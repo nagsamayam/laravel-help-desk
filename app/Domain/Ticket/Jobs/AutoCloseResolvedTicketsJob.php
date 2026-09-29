@@ -8,15 +8,17 @@ use App\Domain\Ticket\Actions\CloseTicketAction;
 use App\Domain\Ticket\Enums\TicketStatus;
 use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-final class AutoCloseResolvedTicketsJob implements ShouldQueue
+final class AutoCloseResolvedTicketsJob implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -29,10 +31,32 @@ final class AutoCloseResolvedTicketsJob implements ShouldQueue
 
     public int $timeout = 180;
 
+    public int $uniqueFor = 3600;
+
     public function __construct(
         public readonly int $daysAfterResolved = 3,
     ) {
         $this->onQueue('maintenance');
+    }
+
+    /**
+     * The unique ID of the job.
+     */
+    public function uniqueId(): string
+    {
+        return 'auto-close-resolved-tickets-'.$this->daysAfterResolved;
+    }
+
+    /**
+     * Get the middleware the job should pass through.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping($this->uniqueId()))->expireAfter(180),
+        ];
     }
 
     /**

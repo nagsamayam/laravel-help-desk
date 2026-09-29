@@ -18,6 +18,7 @@ use App\Domain\Ticket\Models\Ticket;
 use App\Domain\Ticket\Routing\TicketRouter;
 use App\Infrastructure\Idempotency\Jobs\PruneExpiredIdempotencyKeysJob;
 use App\Infrastructure\Idempotency\Models\IdempotencyKey;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -27,7 +28,7 @@ final class QueueJobsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_send_ticket_notification_listener_implements_should_queue_contract(): void
+    public function test_send_ticket_notification_listener_implements_should_queue_contract_and_middleware(): void
     {
         $listener = new SendTicketNotificationListener;
 
@@ -36,6 +37,42 @@ final class QueueJobsTest extends TestCase
         $this->assertSame(3, $listener->tries);
         $this->assertSame([10, 30, 60], $listener->backoff);
         $this->assertTrue($listener->afterCommit);
+
+        $middleware = $listener->middleware();
+        $this->assertCount(2, $middleware);
+    }
+
+    public function test_escalate_overdue_tickets_job_implements_unique_and_middleware(): void
+    {
+        $job = new EscalateOverdueTicketsJob(hoursOverdue: 24);
+
+        $this->assertInstanceOf(ShouldBeUnique::class, $job);
+        $this->assertInstanceOf(ShouldQueue::class, $job);
+        $this->assertSame('escalate-overdue-tickets-24', $job->uniqueId());
+        $this->assertSame(1800, $job->uniqueFor);
+        $this->assertCount(1, $job->middleware());
+    }
+
+    public function test_auto_close_resolved_tickets_job_implements_unique_and_middleware(): void
+    {
+        $job = new AutoCloseResolvedTicketsJob(daysAfterResolved: 3);
+
+        $this->assertInstanceOf(ShouldBeUnique::class, $job);
+        $this->assertInstanceOf(ShouldQueue::class, $job);
+        $this->assertSame('auto-close-resolved-tickets-3', $job->uniqueId());
+        $this->assertSame(3600, $job->uniqueFor);
+        $this->assertCount(1, $job->middleware());
+    }
+
+    public function test_prune_expired_idempotency_keys_job_implements_unique_and_middleware(): void
+    {
+        $job = new PruneExpiredIdempotencyKeysJob;
+
+        $this->assertInstanceOf(ShouldBeUnique::class, $job);
+        $this->assertInstanceOf(ShouldQueue::class, $job);
+        $this->assertSame('prune-expired-idempotency-keys', $job->uniqueId());
+        $this->assertSame(1800, $job->uniqueFor);
+        $this->assertCount(1, $job->middleware());
     }
 
     public function test_escalate_overdue_tickets_job_escalates_past_due_tickets(): void
