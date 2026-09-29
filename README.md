@@ -229,7 +229,6 @@ php artisan migrate:fresh --seed
 | Role | Email | Name |
 | :--- | :--- | :--- |
 | **Admin** | `admin@example.com` | System Administrator |
-| **Admin** | `nag.samayam@gmail.com` | Nag Samayam |
 | **Agent** | `sarah.agent@example.com` | Sarah Connor (Senior Technical) |
 | **Agent** | `alex.agent@example.com` | Alex Murphy (Security & Auth) |
 | **Agent** | `david.agent@example.com` | David Miller (Billing Specialist) |

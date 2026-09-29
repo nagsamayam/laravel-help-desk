@@ -21,14 +21,6 @@ class UserSeeder extends Seeder
         // Admins
         $admins = [
             [
-                'first_name' => 'Nageswara Rao',
-                'last_name' => 'Samayam',
-                'email' => 'nag.samayam@gmail.com',
-                'role' => Role::Admin,
-                'email_verified_at' => now(),
-                'password' => $defaultPassword,
-            ],
-            [
                 'first_name' => 'System',
                 'last_name' => 'Administrator',
                 'email' => 'admin@example.com',
