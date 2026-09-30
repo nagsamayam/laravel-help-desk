@@ -80,11 +80,13 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($e instanceof IdempotencyInFlightException) {
+                $retryAfter = (string) config('idempotency.retry_after_seconds', 2);
+
                 return ApiResponse::error(
                     code: 'IDEMPOTENCY_IN_FLIGHT',
                     message: $e->getMessage() ?: 'A request with this idempotency key is currently in progress.',
                     status: Response::HTTP_CONFLICT,
-                );
+                )->header('Retry-After', $retryAfter);
             }
 
             $statusCode = $e instanceof HttpExceptionInterface

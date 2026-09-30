@@ -92,6 +92,34 @@ it('returns 409 conflict when idempotency key is reused with different payload',
         ->assertJsonPath('error.code', 'IDEMPOTENCY_CONFLICT');
 });
 
+it('returns 409 conflict with Retry-After header when an idempotency key is in-flight', function (): void {
+    $user = User::factory()->create();
+    $key = 'test-middleware-in-flight-12345';
+    $payload = ['value' => 'in-flight-payload'];
+
+    // Pre-create an in-flight reservation in the database
+    IdempotencyKey::query()->create([
+        'scope_type' => 'user',
+        'scope_id' => (string) $user->getKey(),
+        'operation' => 'POST:test-idempotent-default',
+        'key_hash' => hash('sha256', $key),
+        'request_hash' => hash('sha256', json_encode([
+            'operation' => 'POST:test-idempotent-default',
+            'payload' => $payload,
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)),
+        'expires_at' => now()->addMinutes(10),
+        'completed_at' => null,
+    ]);
+
+    $response = $this->actingAs($user, 'api')
+        ->withHeader('Idempotency-Key', $key)
+        ->postJson('/test-idempotent-default', $payload);
+
+    $response->assertStatus(409)
+        ->assertHeader('Retry-After', '2')
+        ->assertJsonPath('error.code', 'IDEMPOTENCY_IN_FLIGHT');
+});
+
 it('validates idempotency key length and characters', function (): void {
     $user = User::factory()->create();
 

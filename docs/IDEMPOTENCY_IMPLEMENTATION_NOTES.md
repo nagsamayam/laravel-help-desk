@@ -87,10 +87,17 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config, response } = error;
-    if (response?.status === 409 && response?.data?.error === 'IDEMPOTENCY_IN_FLIGHT' && !config._retry) {
-      config._retry = true;
-      const retryAfter = (parseInt(response.headers['retry-after'], 10) || 2) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, retryAfter));
+    const errorCode = response?.data?.error?.code || (typeof response?.data?.error === 'string' ? response.data.error : null);
+    const isInFlight = response?.status === 409 && errorCode === 'IDEMPOTENCY_IN_FLIGHT';
+
+    const maxRetries = 3;
+    if (isInFlight && config && (config._retryCount || 0) < maxRetries) {
+      config._retryCount = (config._retryCount || 0) + 1;
+      const rawHeader = response.headers?.['retry-after'] || response.headers?.get?.('retry-after');
+      const parsedSeconds = parseInt(rawHeader, 10);
+      const retryAfterSec = (!isNaN(parsedSeconds) && parsedSeconds > 0) ? Math.min(parsedSeconds, 10) : 2;
+
+      await new Promise((resolve) => setTimeout(resolve, retryAfterSec * 1000));
       return apiClient(config);
     }
     return Promise.reject(error);

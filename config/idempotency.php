@@ -20,6 +20,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | In-Flight Retry-After Header
+    |--------------------------------------------------------------------------
+    |
+    | Number of seconds the client should wait before retrying an in-flight
+    | idempotent request (HTTP 409 Conflict with Retry-After header).
+    |
+    */
+
+    'retry_after_seconds' => (int) env(
+        'IDEMPOTENCY_RETRY_AFTER_SECONDS',
+        2,
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Redis
     |--------------------------------------------------------------------------
     |
