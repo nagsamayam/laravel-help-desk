@@ -9,6 +9,8 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Ticket\Models\Ticket;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class RoundRobinAssignment implements AssignmentStrategy
 {
@@ -27,11 +29,23 @@ final class RoundRobinAssignment implements AssignmentStrategy
             return null;
         }
 
-        $count = $agents->count();
-        $pointer = (int) Cache::increment($this->cacheKey);
-        $index = ($pointer - 1) % $count;
+        try {
+            // Standard Atomic Operations Flow
+            $count = $agents->count();
+            $pointer = (int) Cache::increment($this->cacheKey);
+            $index = ($pointer - 1) % $count;
 
-        return $agents->values()->get($index);
+            return $agents->values()->get($index);
+        } catch (Throwable $e) {
+            // Fail-safe Mechanism triggered if Redis/Memcached goes down completely
+            Log::critical('Ticket assignment cache connection failed. Falling back to random selection.', [
+                'exception' => $e->getMessage(),
+                'ticket_id' => $ticket->id,
+            ]);
+
+            // Emergency Fallback: Select a random agent so business operations don't freeze
+            return $agents->random();
+        }
     }
 
     /**
