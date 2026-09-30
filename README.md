@@ -289,6 +289,10 @@ All API endpoints are versioned under `/api/v1` and return standardized JSON env
 
 👉 *Full specifications, query filters, and sample JSON payloads: **[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)***
 
+The API collection for this project is committed directly to the repository. You can download or import the file into Postman using the link below:
+
+👉 [Download Postman Collection](storage/postman/api_collection.json)
+
 ---
 
 ## Testing & Quality Assurance
