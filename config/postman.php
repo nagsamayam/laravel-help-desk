@@ -153,7 +153,7 @@ return [
 
         'path' => env('POSTMAN_STORAGE_DIR', storage_path('postman')),
 
-        'filename' => env('POSTMAN_STORAGE_FILE', 'api_collection'),
+        'filename' => env('POSTMAN_STORAGE_FILE', 'api_collection.json'),
     ],
 
     /*
@@ -167,14 +167,14 @@ return [
     |
     */
     'cloud' => [
-        'api_key'       => env('POSTMAN_API_KEY'),
+        'api_key' => env('POSTMAN_API_KEY'),
         'collection_id' => env('POSTMAN_COLLECTION_ID'),
-        'workspace_id'  => env('POSTMAN_WORKSPACE_ID'),
+        'workspace_id' => env('POSTMAN_WORKSPACE_ID'),
 
         'merge' => [
-            'preserve_responses'     => true,
-            'preserve_scripts'       => true,
-            'preserve_manual_items'  => true,
+            'preserve_responses' => true,
+            'preserve_scripts' => true,
+            'preserve_manual_items' => true,
             'overwrite_descriptions' => false,
         ],
     ],
