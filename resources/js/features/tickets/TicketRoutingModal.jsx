@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
@@ -47,6 +47,7 @@ export function TicketRoutingModal({ isOpen, onClose, ticket }) {
         setServerError('');
         routeMutation.mutate({ ticketId: ticket.id, persist });
     };
+
 
     return (
         <Modal
@@ -106,7 +107,14 @@ export function TicketRoutingModal({ isOpen, onClose, ticket }) {
                         </div>
 
                         <div className="text-xs space-y-1 text-slate-700 dark:text-slate-300">
-                            <div><strong className="text-slate-900 dark:text-slate-100">Handler Matched:</strong> <span className="font-mono bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">{result.rule_name || result.handler}</span></div>
+                            <div>
+                                <strong className="text-slate-900 dark:text-slate-100">
+                                    Handler Matched:
+                                </strong>
+                                <span className="font-mono bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                                    {result.matched_rule || result.handler}
+                                </span>
+                            </div>
                             <div><strong className="text-slate-900 dark:text-slate-100">Assigned Department / Agent:</strong> {result.assigned_to?.name || `Agent #${result.assigned_to}` || 'N/A'}</div>
                             <div><strong className="text-slate-900 dark:text-slate-100">Priority Assigned:</strong> <PriorityBadge priority={result.priority || ticket.priority} /></div>
                             <div><strong className="text-slate-900 dark:text-slate-100">Routing Reason:</strong> {result.reason || result.message}</div>
