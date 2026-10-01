@@ -86,7 +86,10 @@ return Application::configure(basePath: dirname(__DIR__))
                     code: 'IDEMPOTENCY_IN_FLIGHT',
                     message: $e->getMessage() ?: 'A request with this idempotency key is currently in progress.',
                     status: Response::HTTP_CONFLICT,
-                )->header('Retry-After', $retryAfter);
+                )->withHeaders([
+                    'Retry-After' => $retryAfter,
+                    'X-Cache-Idempotency' => 'In-Progress',
+                ]);
             }
 
             $statusCode = $e instanceof HttpExceptionInterface
