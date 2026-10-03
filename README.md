@@ -217,9 +217,103 @@ The project includes a ready-to-run `compose.yml` defining **MySQL 8.4 LTS** and
    docker compose down
    ```
 
+
 ---
 
-### 3. Clone & Configure Environment
+### 3. Percona Monitoring and Management (PMM)
+
+The project includes **Percona Monitoring and Management (PMM)** for local MySQL observability. PMM provides MySQL performance dashboards and Query Analytics (QAN) for inspecting database activity, query performance, connections, and other production-style database metrics.
+
+The Docker Compose setup includes:
+
+- **`pmm-server`** — PMM Server and dashboard UI, available at `https://localhost:8443`.
+- **`pmm-client`** — PMM Agent/client used to register the local MySQL service with PMM.
+- **`mysql`** — MySQL 8.4 LTS database being monitored.
+
+#### 3.1 Create the PMM MySQL Monitoring User
+
+If the PMM client is configured to use the dedicated `pmm_monitor` account, create the account inside MySQL before registering the database with PMM:
+
+```sql
+CREATE USER 'pmm_monitor'@'%' IDENTIFIED BY 'pmm_password';
+
+GRANT SELECT, PROCESS, REPLICATION CLIENT, RELOAD
+ON *.* TO 'pmm_monitor'@'%';
+```
+
+> **Note:** These credentials are intended for this local learning environment. For production, use secrets management and the least-privilege permissions appropriate for your deployment.
+
+#### 3.2 Access the PMM Dashboard
+
+Open:
+
+```text
+https://localhost:8443
+```
+
+After login, check the MySQL dashboards and **Query Analytics (QAN)** for the registered `local-docker-mysql` service.
+
+#### 3.3 If MySQL Is Not Showing in the PMM Dashboard
+
+If PMM Server is running but MySQL is not visible in the PMM dashboard, manually register MySQL from the `pmm-client` container:
+
+```bash
+docker exec -it pmm-client pmm-admin add mysql \
+  --username=root \
+  --password=<mysql_root_password> \
+  --host=mysql \
+  --port=3306 \
+  --query-source=perfschema \
+  local-docker-mysql
+```
+Register Redis/Valkey from the `pmm-client` container:
+
+```bash
+docker exec -it pmm-client pmm-admin add valkey \
+  --host=redis \
+  --port=6379 \
+  local-docker-redis
+```
+
+Verify the registered services:
+
+```bash
+docker exec -it pmm-client pmm-admin list
+```
+
+You should see `local-docker-mysql` listed as a MySQL service. Refresh the PMM dashboard after registration.
+
+> **Recommended:** If you have created the dedicated `pmm_monitor` account above, use it instead of `root`:
+>
+> ```bash
+> docker exec -it pmm-client pmm-admin add mysql \
+>   --username=pmm_monitor \
+>   --password=pmm_password \
+>   --host=mysql \
+>   --port=3306 \
+>   --query-source=perfschema \
+>   local-docker-mysql
+> ```
+
+#### 3.4 Useful PMM Client Commands
+
+```bash
+# Check PMM agent status
+docker exec -it pmm-client pmm-admin status
+
+# List monitored services
+docker exec -it pmm-client pmm-admin list
+
+# View PMM client logs
+docker logs -f pmm-client
+
+# View PMM server logs
+docker logs -f pmm-server
+```
+
+---
+
+### 4. Clone & Configure Environment
 
 ```bash
 git clone https://github.com/your-org/laravel-help-desk.git
@@ -408,7 +502,7 @@ php artisan test --parallel
 ```
 
 ### Test Suite Highlights
-- **106+ Tests, 500+ Assertions** across Unit and Feature test suites.
+- **130+ Tests, 699+ Assertions** across Unit and Feature test suites.
 - **Patterns Test Suite (`tests/Feature/Patterns/`):** Full verification of State transitions, Strategy assignments, Chain of Responsibility routing, Command actions, Decorator pipeline, Events/Observers, and Specifications.
 - **Idempotency Test Suite (`tests/Feature/Idempotency/`):** Tests replay caching, canonical hashing, distributed lock timeouts, and `IdempotencyInFlightException` handling.
 - **Authorization Test Suite (`tests/Feature/Authorization/`):** Tests cross-tenant boundaries, role gates, and policy permissions.

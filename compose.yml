@@ -1,3 +1,7 @@
+networks:
+  monitoring:
+    name: monitoring
+
 services:
 
   mysql:
@@ -5,15 +9,14 @@ services:
     restart: unless-stopped
     ports:
       - "3306:3306"
-
+    networks:
+      - monitoring
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-laravel_help_desk}
       MYSQL_PASSWORD: ${DB_PASSWORD:?MYSQL_PASSWORD is required}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
-
     volumes:
       - mysql_data:/var/lib/mysql
-
     healthcheck:
       test:
         [
@@ -31,11 +34,66 @@ services:
       retries: 20
       start_period: 10s
 
+  pmm-server:
+    image: percona/pmm-server:3
+    platform: linux/amd64
+    ports:
+      - "8443:8443"
+    networks:
+      - monitoring
+    volumes:
+      - pmm_data:/srv
+    restart: always
+    environment:
+      - PMM_DATA_RETENTION=720h
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://localhost:8443/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pmm-client:
+    image: percona/pmm-client:3
+    platform: linux/amd64
+    container_name: pmm-client
+    restart: unless-stopped
+    networks:
+      - monitoring
+    depends_on:
+      mysql:
+        condition: service_healthy
+      pmm-server:
+        condition: service_started  # Ensures the PMM server API is fully running first
+    environment:
+      # PMM Server
+      - PMM_AGENT_CONFIG_FILE=/tmp/pmm-agent.yaml
+      - PMM_AGENT_SERVER_ADDRESS=pmm-server:8443
+      - PMM_AGENT_SERVER_USERNAME=admin
+      - PMM_AGENT_SERVER_PASSWORD=${PMM_AGENT_SERVER_PASSWORD}
+      - PMM_AGENT_SERVER_INSECURE_TLS=true
+      
+      # Automatically initialize PMM Agent
+      - PMM_AGENT_SETUP=true
+      - PMM_AGENT_SETUP_FORCE=true 
+      - PMM_AGENT_SETUP_NODE_NAME=mysql-node
+      - PMM_AGENT_SETUP_NODE_TYPE=container
+
+      # Automatically register MySQL
+      - PMM_AGENT_SETUP_SERVICE_TYPE=mysql
+      - PMM_AGENT_SETUP_SERVICE_NAME=local-docker-mysql
+      - PMM_AGENT_SETUP_HOST=${PMM_AGENT_SETUP_HOST}
+      - PMM_AGENT_SETUP_PORT=${PMM_AGENT_SETUP_PORT}
+      - PMM_AGENT_SETUP_USER=${PMM_AGENT_SETUP_USER}
+      - PMM_AGENT_SETUP_PASSWORD=${PMM_AGENT_SETUP_PASSWORD}
+      - PMM_AGENT_SETUP_QUERY_SOURCE=perfschema
+
   redis:
     image: redis:alpine
     restart: unless-stopped
     ports:
       - "${FORWARD_REDIS_PORT:-6379}:6379"
+    networks:
+      - monitoring
     volumes:
       - redis_data:/data
     healthcheck:
@@ -48,3 +106,4 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  pmm_data:

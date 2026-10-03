@@ -33,7 +33,6 @@ class TenMillionUsersSeeder extends Seeder
                         CONCAT('UserLast', seq),
                         CONCAT('user.', seq, '@example.com'),
                         CONCAT('user.', seq),
-                        CAST(9000000000 + seq AS CHAR),
                         NOW(),
                         NOW()
                     FROM (
