@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { apiClient } from '@/lib/api-client';
 
 export const useAuthStore = create((set, get) => ({
     user: (() => {
@@ -27,6 +28,16 @@ export const useAuthStore = create((set, get) => ({
         });
     },
 
+    setToken: (token) => {
+        if (token) {
+            localStorage.setItem('auth_token', token);
+            set({ token, isAuthenticated: true });
+        } else {
+            localStorage.removeItem('auth_token');
+            set({ token: null, isAuthenticated: false });
+        }
+    },
+
     setUser: (user) => {
         if (user) {
             localStorage.setItem('auth_user', JSON.stringify(user));
@@ -37,25 +48,15 @@ export const useAuthStore = create((set, get) => ({
     },
 
     fetchProfile: async () => {
-        const token = get().token;
+        const token = get().token || localStorage.getItem('auth_token');
         if (!token) return null;
         try {
             set({ isLoadingProfile: true });
-            const res = await fetch('/api/v1/auth/me', {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: 'application/json',
-                },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const userData = data?.data || data;
-                if (userData && userData.id) {
-                    get().setUser(userData);
-                    return userData;
-                }
-            } else if (res.status === 401) {
-                get().logout();
+            const res = await apiClient.get('/auth/me');
+            const userData = res.data?.data || res.data;
+            if (userData && userData.id) {
+                get().setUser(userData);
+                return userData;
             }
         } catch {
             // Keep existing offline cached user if network fails
@@ -126,3 +127,27 @@ export const useAuthStore = create((set, get) => ({
         return false;
     },
 }));
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'auth_token') {
+            const newToken = event.newValue;
+            if (newToken) {
+                useAuthStore.setState({ token: newToken, isAuthenticated: true });
+            } else {
+                useAuthStore.setState({ token: null, user: null, isAuthenticated: false });
+            }
+        } else if (event.key === 'auth_user') {
+            try {
+                const newUser = event.newValue ? JSON.parse(event.newValue) : null;
+                useAuthStore.setState({ user: newUser });
+            } catch {
+                // Ignore parse errors
+            }
+        }
+    });
+
+    window.addEventListener('auth:unauthorized', () => {
+        useAuthStore.getState().logout();
+    });
+}

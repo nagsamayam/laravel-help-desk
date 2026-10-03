@@ -111,3 +111,36 @@ test('authenticated user can refresh token', function () {
             'expires_in',
         ]);
 });
+
+test('user can refresh an expired token within refresh window', function () {
+    $user = User::factory()->create();
+
+    $token = auth('api')->tokenById($user->id);
+    auth('api')->forgetUser();
+
+    $this->travel(120)->minutes();
+
+    $this->withToken($token)
+        ->getJson('/api/v1/auth/me')
+        ->assertUnauthorized();
+
+    $response = $this
+        ->withToken($token)
+        ->postJson('/api/v1/auth/refresh');
+
+    $response->assertOk()
+        ->assertJsonStructure([
+            'access_token',
+            'token_type',
+            'expires_in',
+        ]);
+});
+
+test('refresh fails with 401 when no token is provided or token is invalid', function () {
+    $response = $this->postJson('/api/v1/auth/refresh');
+    $response->assertUnauthorized();
+
+    $invalidResponse = $this->withToken('invalid.token.here')
+        ->postJson('/api/v1/auth/refresh');
+    $invalidResponse->assertUnauthorized();
+});

@@ -53,10 +53,16 @@ final class AuthController extends Controller
 
     public function refresh(): JsonResponse
     {
-        /** @var JWTGuard $auth */
-        $auth = Auth::guard('api');
+        try {
+            /** @var JWTGuard $auth */
+            $auth = Auth::guard('api');
 
-        return $this->tokenResponse($auth->refresh());
+            return $this->tokenResponse($auth->refresh());
+        } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException $e) {
+            return response()->json([
+                'message' => 'Unauthorized',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
     }
 
     public function logout(): JsonResponse

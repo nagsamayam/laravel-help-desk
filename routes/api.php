@@ -20,9 +20,9 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:auth-register');
         Route::post('login', [AuthController::class, 'login'])
             ->middleware('throttle:auth-login');
+        Route::post('refresh', [AuthController::class, 'refresh'])
+            ->middleware('throttle:auth-refresh');
         Route::middleware('auth:api')->group(function () {
-            Route::post('refresh', [AuthController::class, 'refresh'])
-                ->middleware('throttle:auth-refresh');
             Route::get('me', [AuthController::class, 'me']);
             Route::post('logout', [AuthController::class, 'logout']);
         });
