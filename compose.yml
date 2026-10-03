@@ -115,6 +115,22 @@ services:
     networks:
       - monitoring
 
+  mysqld-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: mysqld-exporter
+    restart: unless-stopped
+    ports:
+      - "9104:9104"
+    command:
+      - "--config.my-cnf=/.my.cnf"
+    volumes:
+      - ./prometheus/mysql/.my.cnf:/.my.cnf:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - monitoring
+
   redis:
     image: redis:alpine
     restart: unless-stopped

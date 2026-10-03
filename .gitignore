@@ -30,3 +30,5 @@ Thumbs.db
 
 /storage/app/keys/*
 !/storage/app/keys/.gitignore
+
+prometheus/mysql/.my.cnf
