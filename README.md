@@ -313,7 +313,215 @@ docker logs -f pmm-server
 
 ---
 
-### 4. Clone & Configure Environment
+### 4. Prometheus & Grafana HTTP Monitoring
+
+The project includes Prometheus and Grafana for Laravel HTTP observability. The existing `promphp/prometheus_client_php` Composer dependency is used with Redis storage so metrics survive across Laravel requests.
+
+The monitoring flow is:
+
+```text
+Laravel HTTP requests
+        |
+        v
+RecordHttpMetrics middleware
+        |
+        v
+Redis-backed Prometheus metrics
+        |
+        v
+/metrics
+        |
+        v
+Prometheus
+        |
+        v
+Grafana dashboard
+```
+
+The current Docker Compose setup runs MySQL, Redis, PMM, Prometheus, and Grafana in Docker. Laravel itself is run from the host, so Prometheus scrapes Laravel through `host.docker.internal:8000`.
+
+#### 4.1 Start the monitoring containers
+
+```bash
+docker compose up -d mysql redis pmm-server pmm-client prometheus grafana
+docker compose ps
+```
+
+Expected monitoring endpoints:
+
+```text
+Prometheus: http://localhost:9090
+Grafana:    http://localhost:3000
+Laravel:    http://localhost:8000
+Metrics:    http://localhost:8000/metrics
+```
+
+#### 4.2 Start Laravel so Docker can scrape it
+
+Because Laravel is running on the host, bind the development server to all interfaces:
+
+```bash
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Do not use only `php artisan serve` for this setup because the default loopback binding can prevent the Prometheus container from reaching Laravel.
+
+#### 4.3 Configure Prometheus metrics
+
+The application registers `RecordHttpMetrics` as a global Laravel middleware. It records:
+
+- `helpdesk_http_requests_total` — request count
+- `helpdesk_http_request_duration_seconds` — HTTP latency histogram
+- `helpdesk_http_requests_in_flight` — current requests being processed
+
+Metric labels are intentionally limited to:
+
+```text
+method
+route
+status
+```
+
+Do not add user IDs, ticket IDs, email addresses, full URLs, or other unbounded values as Prometheus labels because they create high-cardinality time series.
+
+Prometheus scrapes:
+
+```text
+http://host.docker.internal:8000/metrics
+```
+
+Check the target at:
+
+```text
+http://localhost:9090/targets
+```
+
+The `laravel` target should show `UP`.
+
+You can also verify the endpoint directly from the host:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+You should see metrics such as:
+
+```text
+helpdesk_http_requests_total
+helpdesk_http_request_duration_seconds_bucket
+helpdesk_http_requests_in_flight
+```
+
+#### 4.4 Grafana dashboard
+
+Grafana is provisioned automatically with:
+
+- Prometheus datasource
+- `HelpDesk - HTTP Monitoring` dashboard
+- Request rate
+- 5xx error rate
+- p95 HTTP latency
+- Request rate by route
+- p95 latency by route
+- HTTP status rate
+- Requests in flight
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+The dashboard is loaded automatically from:
+
+```text
+grafana/dashboards/helpdesk-http.json
+```
+
+The Grafana datasource uses the Docker-internal URL:
+
+```text
+http://prometheus:9090
+```
+
+Do not use `http://localhost:9090` for the Grafana datasource because Grafana itself runs inside Docker.
+
+#### 4.5 Useful PromQL queries
+
+Requests per second:
+
+```promql
+sum(rate(helpdesk_http_requests_total[5m]))
+```
+
+Requests by route:
+
+```promql
+sum by (route) (rate(helpdesk_http_requests_total[5m]))
+```
+
+5xx requests per second:
+
+```promql
+sum(rate(helpdesk_http_requests_total{status=~"5.."}[5m]))
+```
+
+p95 latency:
+
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le) (
+    rate(helpdesk_http_request_duration_seconds_bucket[5m])
+  )
+)
+```
+
+p95 latency by route:
+
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le, route) (
+    rate(helpdesk_http_request_duration_seconds_bucket[5m])
+  )
+)
+```
+
+#### 4.6 Troubleshooting
+
+If the Grafana dashboard is empty:
+
+```bash
+docker compose ps prometheus grafana
+```
+
+Then check Prometheus:
+
+```bash
+curl http://localhost:9090/-/healthy
+curl http://localhost:9090/targets
+```
+
+Check Laravel metrics:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+Check Prometheus logs:
+
+```bash
+docker logs prometheus --tail 100
+```
+
+If the Prometheus `laravel` target is `DOWN`, verify Laravel is running with:
+
+```bash
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+### 5. Clone & Configure Environment
 
 ```bash
 git clone https://github.com/your-org/laravel-help-desk.git

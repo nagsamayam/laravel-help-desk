@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\IdempotentRequest;
+use App\Http\Middleware\RecordHttpMetrics;
 use App\Http\Responses\ApiResponse;
 use App\Infrastructure\Idempotency\Exceptions\IdempotencyConflictException;
 use App\Infrastructure\Idempotency\Exceptions\IdempotencyInFlightException;
@@ -31,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(RecordHttpMetrics::class);
+
         $middleware->alias([
             'roles' => CheckRole::class,
             'idempotent' => IdempotentRequest::class,

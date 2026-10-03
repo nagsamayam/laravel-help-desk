@@ -87,6 +87,34 @@ services:
       - PMM_AGENT_SETUP_PASSWORD=${PMM_AGENT_SETUP_PASSWORD}
       - PMM_AGENT_SETUP_QUERY_SOURCE=perfschema
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+
   redis:
     image: redis:alpine
     restart: unless-stopped
@@ -107,3 +135,5 @@ volumes:
   mysql_data:
   redis_data:
   pmm_data:
+  prometheus_data:
+  grafana_data:
