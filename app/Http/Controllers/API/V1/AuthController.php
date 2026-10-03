@@ -11,6 +11,7 @@ use App\Http\Requests\V1\RegisterRequest;
 use App\Http\Resources\V1\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use PHPOpenSourceSaver\JWTAuth\JWTGuard;
 use Symfony\Component\HttpFoundation\Response;
@@ -58,7 +59,7 @@ final class AuthController extends Controller
             $auth = Auth::guard('api');
 
             return $this->tokenResponse($auth->refresh());
-        } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException $e) {
+        } catch (JWTException $e) {
             return response()->json([
                 'message' => 'Unauthorized',
             ], Response::HTTP_UNAUTHORIZED);

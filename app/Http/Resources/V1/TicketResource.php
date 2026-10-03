@@ -44,6 +44,7 @@ class TicketResource extends JsonResource
             'assigne' => $assigneeUser ? new UserResource($assigneeUser) : null,
             'assigned_to_user' => $assigneeUser ? new UserResource($assigneeUser) : null,
             'assigned_agent' => $assigneeUser ? new UserResource($assigneeUser) : null,
+            'attachments' => TicketAttachmentResource::collection($this->whenLoaded('attachments')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

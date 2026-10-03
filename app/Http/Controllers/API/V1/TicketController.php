@@ -114,7 +114,7 @@ final class TicketController extends Controller
         ]);
 
         $ticket = $createTicket->execute($ticketData);
-        $ticket->loadMissing(['category', 'customer', 'assignee']);
+        $ticket->loadMissing(['category', 'customer', 'assignee', 'attachments']);
 
         return new IdempotencyResponse(
             data: [
@@ -139,7 +139,7 @@ final class TicketController extends Controller
             ticket: $ticket,
             attributes: $ticketData,
         );
-        $updatedTicket->loadMissing(['category', 'customer', 'assignee']);
+        $updatedTicket->loadMissing(['category', 'customer', 'assignee', 'attachments']);
 
         return new IdempotencyResponse(
             data: [
@@ -173,7 +173,7 @@ final class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->loadMissing(['category', 'customer', 'assignee']);
+        $ticket->loadMissing(['category', 'customer', 'assignee', 'attachments']);
 
         return new TicketResource($ticket);
     }

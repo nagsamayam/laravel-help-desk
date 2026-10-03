@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Identity\Enums\Role;
+use App\Http\Controllers\API\V1\AttachmentController;
 use App\Http\Controllers\API\V1\AuditLogController;
 use App\Http\Controllers\API\V1\AuthController;
 use App\Http\Controllers\API\V1\TicketAssignmentController;
@@ -82,5 +83,18 @@ Route::prefix('v1')->group(function () {
             ->middleware('roles:'.Role::Admin->value.','.Role::Agent->value);
         Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])
             ->middleware('roles:'.Role::Admin->value.','.Role::Agent->value);
+
+        // Ticket attachments (Chunked, Presigned S3, Direct, Download, View, Delete)
+        Route::prefix('attachments')->group(function () {
+            Route::post('chunk/init', [AttachmentController::class, 'initChunk']);
+            Route::post('chunk/upload', [AttachmentController::class, 'uploadChunk']);
+            Route::post('chunk/complete', [AttachmentController::class, 'completeChunk']);
+            Route::post('upload', [AttachmentController::class, 'directUpload']);
+            Route::post('presigned-url', [AttachmentController::class, 'presignedUrl']);
+            Route::post('presigned-complete', [AttachmentController::class, 'completePresigned']);
+            Route::get('{attachment}/download', [AttachmentController::class, 'download']);
+            Route::get('{attachment}/view', [AttachmentController::class, 'view']);
+            Route::delete('{attachment}', [AttachmentController::class, 'destroy']);
+        });
     });
 });
