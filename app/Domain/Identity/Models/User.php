@@ -77,6 +77,13 @@ class User extends Authenticatable implements JWTSubject
         );
     }
 
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value, array $attributes) => trim("{$attributes['first_name']} {$attributes['last_name']}")
+        );
+    }
+
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class, 'customer_id');

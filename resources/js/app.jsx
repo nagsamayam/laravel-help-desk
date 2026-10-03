@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { useUiStore } from '@/stores/ui-store';
+import { useBroadcasting } from '@/hooks/use-broadcasting';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ToastContainer } from '@/components/ui/ToastContainer';
+import { BroadcastNotificationsDrawer } from '@/components/broadcasting/BroadcastNotificationsDrawer';
 import { AuthPage } from '@/features/auth/AuthPage';
 import { TicketList } from '@/features/tickets/TicketList';
 import { TicketFilterBar } from '@/features/tickets/TicketFilterBar';
@@ -29,6 +31,7 @@ const queryClient = new QueryClient({
 
 function MainDashboard() {
     const { user, isAuthenticated, isAgent, fetchProfile } = useAuthStore();
+    const { connectionStatus } = useBroadcasting();
     const [currentView, setCurrentView] = useState('tickets');
     const [selectedTicketId, setSelectedTicketId] = useState(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -88,6 +91,7 @@ function MainDashboard() {
     };
 
     const handleSelectTicket = (id) => {
+        setCurrentView('tickets');
         setSelectedTicketId(id);
     };
 
@@ -106,7 +110,10 @@ function MainDashboard() {
 
     return (
         <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-            <Navbar onOpenCreateTicket={() => setIsCreateModalOpen(true)} />
+            <Navbar
+                connectionStatus={connectionStatus}
+                onOpenCreateTicket={() => setIsCreateModalOpen(true)}
+            />
 
             <div className="flex flex-1">
                 <Sidebar currentView={currentView} onChangeView={handleChangeView} />
@@ -161,6 +168,11 @@ function MainDashboard() {
                 isOpen={Boolean(assigningTicket)}
                 onClose={() => setAssigningTicket(null)}
                 ticket={assigningTicket}
+            />
+
+            <BroadcastNotificationsDrawer
+                onSelectTicket={handleSelectTicket}
+                connectionStatus={connectionStatus}
             />
 
             <ToastContainer />

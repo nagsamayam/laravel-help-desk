@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTicketRealtime } from '@/hooks/use-ticket-realtime';
 import { StatusBadge, PriorityBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
@@ -28,6 +29,7 @@ import {
     Image as ImageIcon,
     Loader2,
     AlertCircle,
+    Users,
 } from 'lucide-react';
 import { TicketMessages } from './TicketMessages';
 import { TicketStatusHistoryTimeline } from './TicketStatusHistoryTimeline';
@@ -44,6 +46,9 @@ export function TicketDetail({ ticketId, onBack }) {
     const [previewAttachment, setPreviewAttachment] = useState(null);
     const [loadingAttachmentId, setLoadingAttachmentId] = useState(null);
     const [attachmentError, setAttachmentError] = useState(null);
+
+    // Real-time WebSocket presence and agent collision detection
+    const { activeViewers, otherViewers } = useTicketRealtime(ticketId);
 
     const { data: ticket, isLoading, isError, error } = useQuery({
         queryKey: queryKeys.tickets.detail(ticketId),
@@ -197,6 +202,27 @@ export function TicketDetail({ ticketId, onBack }) {
                     )}
                 </div>
             </div>
+
+            {/* Agent Collision Warning / Active Presence Banner */}
+            {otherViewers.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                            <Users className="w-4 h-4 shrink-0" />
+                        </div>
+                        <div>
+                            <span className="font-semibold">Active Collision Alert:</span>{' '}
+                            <span>
+                                {otherViewers.map((v) => `${v.name} (${v.role})`).join(', ')} {otherViewers.length === 1 ? 'is' : 'are'} currently viewing this ticket in real-time.
+                            </span>
+                        </div>
+                    </div>
+                    <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-semibold text-[11px] bg-amber-200/70 dark:bg-amber-900/70 text-amber-900 dark:text-amber-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400 animate-pulse" />
+                        {activeViewers.length} Active {activeViewers.length === 1 ? 'Viewer' : 'Viewers'}
+                    </span>
+                </div>
+            )}
 
             {/* Ticket Info Card Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs">
