@@ -31,6 +31,12 @@ Artisan::command('idempotency:prune', function () {
     $this->info("Pruned {$count} expired idempotency key(s).");
 })->purpose('Prune expired idempotency keys');
 
+// Horizon metrics snapshot (every 5 minutes)
+Schedule::command('horizon:snapshot')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer();
+
 // Model pruner (daily)
 Schedule::command('model:prune')
     ->daily()

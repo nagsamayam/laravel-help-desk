@@ -77,7 +77,7 @@ Technical mechanisms that support domain workflows:
 - **`Infrastructure/Storage/` (Attachments):** Multi-part chunked streaming uploader, local filesystem persistence, and AWS S3 pre-signed URL generation. See [Ticket Attachment Subsystem](TICKET_ATTACHMENTS.md).
 
 ### 4. Background Queues & Asynchronous Workers
-- **Redis Queue Engine:** Decouples expensive operations (emails, background SLA escalations, auto-closures) from the HTTP request cycle.
+- **Redis Queue Engine & Laravel Horizon:** Decouples expensive operations (emails, background SLA escalations, auto-closures, WebSockets) from the HTTP request cycle, with real-time queue monitoring, workload balancing, metrics, and supervisor control provided by Laravel Horizon (`/horizon`).
 - **Transactional Dispatching:** Events implement `ShouldDispatchAfterCommit` to prevent dispatching queued jobs if the surrounding database transaction rolls back.
 - **Job Reliability:** Jobs implement `ShouldBeUnique`, `WithoutOverlapping` concurrency locks, exception throttling (`ThrottlesExceptions`), and queue rate limiting (`RateLimited`).
 

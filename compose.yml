@@ -7,7 +7,7 @@ services:
       - "3306:3306"
 
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-larave_help_desk}
+      MYSQL_DATABASE: ${DB_DATABASE:-laravel_help_desk}
       MYSQL_PASSWORD: ${DB_PASSWORD:?MYSQL_PASSWORD is required}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
 
@@ -31,5 +31,20 @@ services:
       retries: 20
       start_period: 10s
 
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
 volumes:
   mysql_data:
+  redis_data:

@@ -42,7 +42,7 @@
                                         },
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"first_name\": \"sample_text\",\n    \"last_name\": \"sample_text\",\n    \"email\": \"user9@example.com\",\n    \"password\": \"sample_text\",\n    \"password_confirmation\": \"sample_text\"\n}",
+                                            "raw": "{\n    \"first_name\": \"sample_text\",\n    \"last_name\": \"sample_text\",\n    \"email\": \"user62@example.com\",\n    \"password\": \"sample_text\",\n    \"password_confirmation\": \"sample_text\"\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"
@@ -122,15 +122,6 @@
                                                 "v1",
                                                 "auth",
                                                 "refresh"
-                                            ]
-                                        },
-                                        "auth": {
-                                            "type": "bearer",
-                                            "bearer": [
-                                                {
-                                                    "key": "token",
-                                                    "value": "{{auth_token}}"
-                                                }
                                             ]
                                         }
                                     }
@@ -253,7 +244,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"status\": \"sample_text\",\n    \"priority\": \"sample_text\",\n    \"open\": 0,\n    \"urgent\": 0,\n    \"unassigned\": 1,\n    \"assigned_to\": 2,\n    \"customer_id\": 6,\n    \"overdue\": 0,\n    \"overdue_days\": 2,\n    \"per_page\": 85\n}",
+                                    "raw": "{\n    \"status\": \"sample_text\",\n    \"priority\": \"sample_text\",\n    \"open\": 1,\n    \"urgent\": 0,\n    \"unassigned\": 0,\n    \"assigned_to\": 4,\n    \"customer_id\": 6,\n    \"overdue\": 0,\n    \"overdue_days\": 10,\n    \"per_page\": 15\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -341,7 +332,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"subject\": \"sample_text\",\n    \"description\": \"sample_text\",\n    \"category_id\": 0,\n    \"priority\": \"sample_text\"\n}",
+                                    "raw": "{\n    \"subject\": \"sample_text\",\n    \"description\": \"sample_text\",\n    \"category_id\": 1,\n    \"priority\": \"sample_text\",\n    \"attachment_ids\": [\n        []\n    ],\n    \"attachments\": [\n        []\n    ]\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -393,7 +384,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"category_id\": 6,\n    \"subject\": \"sample_text\",\n    \"description\": \"sample_text\",\n    \"priority\": \"sample_text\"\n}",
+                                    "raw": "{\n    \"category_id\": 5,\n    \"subject\": \"sample_text\",\n    \"description\": \"sample_text\",\n    \"priority\": \"sample_text\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -706,7 +697,7 @@
                                         },
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"agent_id\": 1,\n    \"assigned_to\": 1,\n    \"strategy\": \"sample_text\"\n}",
+                                            "raw": "{\n    \"agent_id\": 9,\n    \"assigned_to\": 0,\n    \"strategy\": \"sample_text\"\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"
@@ -764,7 +755,7 @@
                                         },
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"persist\": 1\n}",
+                                            "raw": "{\n    \"persist\": 0\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"
@@ -1147,7 +1138,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"user_id\": 1,\n    \"action\": \"sample_text\",\n    \"auditable_type\": \"sample_text\",\n    \"auditable_id\": \"sample_text\",\n    \"date_from\": \"sample_text\",\n    \"date_to\": \"sample_text\",\n    \"per_page\": 31\n}",
+                                    "raw": "{\n    \"user_id\": 5,\n    \"action\": \"sample_text\",\n    \"auditable_type\": \"sample_text\",\n    \"auditable_id\": \"sample_text\",\n    \"date_from\": \"sample_text\",\n    \"date_to\": \"sample_text\",\n    \"per_page\": 13\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -1193,6 +1184,412 @@
                                     "variable": [
                                         {
                                             "key": "auditLog",
+                                            "value": ""
+                                        }
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "attachments",
+                    "item": [
+                        {
+                            "name": "chunk",
+                            "item": [
+                                {
+                                    "name": "init",
+                                    "item": [
+                                        {
+                                            "name": "[POST] api/v1/attachments/chunk/init",
+                                            "request": {
+                                                "method": "POST",
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    }
+                                                ],
+                                                "url": {
+                                                    "raw": "{{base_url}}/api/v1/attachments/chunk/init",
+                                                    "host": [
+                                                        "{{base_url}}"
+                                                    ],
+                                                    "path": [
+                                                        "api",
+                                                        "v1",
+                                                        "attachments",
+                                                        "chunk",
+                                                        "init"
+                                                    ]
+                                                },
+                                                "auth": {
+                                                    "type": "bearer",
+                                                    "bearer": [
+                                                        {
+                                                            "key": "token",
+                                                            "value": "{{auth_token}}"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "upload",
+                                    "item": [
+                                        {
+                                            "name": "[POST] api/v1/attachments/chunk/upload",
+                                            "request": {
+                                                "method": "POST",
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    }
+                                                ],
+                                                "url": {
+                                                    "raw": "{{base_url}}/api/v1/attachments/chunk/upload",
+                                                    "host": [
+                                                        "{{base_url}}"
+                                                    ],
+                                                    "path": [
+                                                        "api",
+                                                        "v1",
+                                                        "attachments",
+                                                        "chunk",
+                                                        "upload"
+                                                    ]
+                                                },
+                                                "auth": {
+                                                    "type": "bearer",
+                                                    "bearer": [
+                                                        {
+                                                            "key": "token",
+                                                            "value": "{{auth_token}}"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "complete",
+                                    "item": [
+                                        {
+                                            "name": "[POST] api/v1/attachments/chunk/complete",
+                                            "request": {
+                                                "method": "POST",
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json"
+                                                    },
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json"
+                                                    }
+                                                ],
+                                                "url": {
+                                                    "raw": "{{base_url}}/api/v1/attachments/chunk/complete",
+                                                    "host": [
+                                                        "{{base_url}}"
+                                                    ],
+                                                    "path": [
+                                                        "api",
+                                                        "v1",
+                                                        "attachments",
+                                                        "chunk",
+                                                        "complete"
+                                                    ]
+                                                },
+                                                "auth": {
+                                                    "type": "bearer",
+                                                    "bearer": [
+                                                        {
+                                                            "key": "token",
+                                                            "value": "{{auth_token}}"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "name": "upload",
+                            "item": [
+                                {
+                                    "name": "[POST] api/v1/attachments/upload",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/v1/attachments/upload",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "v1",
+                                                "attachments",
+                                                "upload"
+                                            ]
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "presigned-url",
+                            "item": [
+                                {
+                                    "name": "[POST] api/v1/attachments/presigned-url",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/v1/attachments/presigned-url",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "v1",
+                                                "attachments",
+                                                "presigned-url"
+                                            ]
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "presigned-complete",
+                            "item": [
+                                {
+                                    "name": "[POST] api/v1/attachments/presigned-complete",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/v1/attachments/presigned-complete",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "v1",
+                                                "attachments",
+                                                "presigned-complete"
+                                            ]
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "download",
+                            "item": [
+                                {
+                                    "name": "[GET] api/v1/attachments/{attachment}/download",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/v1/attachments/:attachment/download",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "v1",
+                                                "attachments",
+                                                ":attachment",
+                                                "download"
+                                            ],
+                                            "variable": [
+                                                {
+                                                    "key": "attachment",
+                                                    "value": ""
+                                                }
+                                            ]
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "view",
+                            "item": [
+                                {
+                                    "name": "[GET] api/v1/attachments/{attachment}/view",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/v1/attachments/:attachment/view",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "v1",
+                                                "attachments",
+                                                ":attachment",
+                                                "view"
+                                            ],
+                                            "variable": [
+                                                {
+                                                    "key": "attachment",
+                                                    "value": ""
+                                                }
+                                            ]
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "[DELETE] api/v1/attachments/{attachment}",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/v1/attachments/:attachment",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "v1",
+                                        "attachments",
+                                        ":attachment"
+                                    ],
+                                    "variable": [
+                                        {
+                                            "key": "attachment",
                                             "value": ""
                                         }
                                     ]

@@ -13,6 +13,8 @@
         "deploying-to-cloud",
         "laravel-best-practices",
         "testing-best-practices",
+        "configuring-horizon",
+        "echo-development",
         "tailwindcss-development"
     ]
 }

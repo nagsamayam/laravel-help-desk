@@ -106,10 +106,12 @@ Developed exclusively for learning purposes and technical skill refreshment, The
 | **Backend Framework** | PHP 8.2+, Laravel 11/12 |
 | **Database** | MySQL 8.4 LTS (ACID source of truth) |
 | **Cache & Queues** | Redis (Distributed locking, high-speed replay cache, async workers) |
+| **Queue Supervision** | Laravel Horizon (Real-time queue monitoring, auto-scaling, metrics dashboard) |
 | **Authentication** | JWT Authentication (`php-open-source-saver/jwt-auth`) with RS256 / asymmetric key support |
 | **Frontend Framework** | React 19, Vite |
 | **Styling & Components**| Tailwind CSS v4, shadcn/ui component architecture, Lucide React |
 | **State Management** | TanStack React Query v5 (server state), Zustand (client session state) |
+| **Real-time Engine** | Laravel Reverb (WebSockets), Laravel Echo, Pusher-JS |
 | **Code Quality & Tests**| Pest / PHPUnit (106+ tests, 500+ assertions), Laravel Pint |
 
 ---
@@ -178,10 +180,47 @@ resources/js/                 # React 19 SPA Frontend
 - **PHP 8.2+** with extensions (`pdo_mysql`, `redis`, `mbstring`, `bcmath`, `curl`)
 - **Composer 2.x**
 - **Node.js 20+** & **npm**
-- **MySQL 8.4 LTS**
-- **Redis 7.x / 8.x**
+- **Docker & Docker Compose** (for containerized MySQL 8.4 & Redis services)
 
-### 2. Clone & Configure Environment
+---
+
+### 2. Start MySQL & Redis via Docker Compose
+
+The project includes a ready-to-run `compose.yml` defining **MySQL 8.4 LTS** and **Redis (Alpine)** with health checks and persistent volume storage.
+
+1. **Start the containers in detached mode:**
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Verify container health and port bindings:**
+   ```bash
+   docker compose ps
+   ```
+   *Expected output:*
+   - `mysql` listening on `0.0.0.0:3306->3306` (Status: `healthy`)
+   - `redis` listening on `0.0.0.0:6379->6379` (Status: `healthy`)
+
+3. **Useful Docker management commands:**
+   ```bash
+   # View container logs
+   docker compose logs -f
+
+   # Test Redis connectivity
+   docker compose exec redis redis-cli ping
+   # Output: PONG
+
+   # Connect to MySQL CLI
+   docker compose exec mysql mysql -u root -p
+   
+   # Stop containers (preserves volume data)
+   docker compose down
+   ```
+
+---
+
+### 3. Clone & Configure Environment
+
 ```bash
 git clone https://github.com/your-org/laravel-help-desk.git
 cd laravel-help-desk
@@ -189,22 +228,47 @@ cd laravel-help-desk
 cp .env.example .env
 ```
 
-Configure your `.env` database, redis, and mail settings:
+Ensure your `.env` contains the matching connection settings for the Docker containers:
+
 ```dotenv
+APP_NAME=HelpDesk
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_TIMEZONE=UTC
+APP_URL=http://localhost:8000
+
+# MySQL Docker Container Configuration
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=laravel_help_desk
 DB_USERNAME=root
-DB_PASSWORD=
-# for docker
-DB_ROOT_PASSWORD=
+DB_PASSWORD=root_password
+DB_ROOT_PASSWORD=root_password
 
+# Redis Docker Container Configuration
 REDIS_CLIENT=phpredis
 REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
 REDIS_PORT=6379
+FORWARD_REDIS_PORT=6379
 
+# Queue & Cache Drivers
+CACHE_STORE=redis
 QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+
+# Laravel Reverb (WebSockets)
+BROADCAST_CONNECTION=reverb
+REVERB_APP_ID=980733
+REVERB_APP_KEY=mmczeuguguo5yfidtgpn
+REVERB_APP_SECRET=3vdxemwdwjhgaxe3hg20
+REVERB_HOST="localhost"
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
+# Mailer Configuration
 MAIL_MAILER=smtp
 MAIL_HOST=127.0.0.1
 MAIL_PORT=1025
@@ -212,7 +276,9 @@ MAIL_FROM_ADDRESS="support@helpdesk.test"
 MAIL_FROM_NAME="HelpDesk Support"
 ```
 
-### 3. Install Dependencies & Generate Keys
+---
+
+### 4. Install Dependencies & Generate Keys
 ```bash
 composer install
 npm install
@@ -221,42 +287,68 @@ php artisan key:generate
 php artisan jwt:secret
 ```
 
-### 4. Run Migrations & Seed Test Data
+---
+
+### 5. Run Migrations & Seed Test Data
 ```bash
-# Runs all database migrations and seeds realistic test data
+# Runs all database migrations and seeds realistic domain test data
 php artisan migrate:fresh --seed
 ```
 
 #### Pre-Configured Seed Accounts (Password: `password`)
-| Role | Email | Name |
-| :--- | :--- | :--- |
-| **Admin** | `admin@example.com` | System Administrator |
-| **Agent** | `sarah.agent@example.com` | Sarah Connor (Senior Technical) |
-| **Agent** | `alex.agent@example.com` | Alex Murphy (Security & Auth) |
-| **Agent** | `david.agent@example.com` | David Miller (Billing Specialist) |
-| **Agent** | `elena.agent@example.com` | Elena Rostova (General Support) |
-| **Customer** | `john.customer@example.com` | John Doe |
-| **Customer** | `emily.customer@example.com` | Emily Blunt |
-| **Customer** | `bruce.wayne@example.com` | Bruce Wayne (VIP Account) |
+| Role | Email | Name | Access Level |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@example.com` | System Administrator | Full System & `/horizon` Access |
+| **Agent** | `sarah.agent@example.com` | Sarah Connor (Senior Technical) | Agent Portal & Feed |
+| **Agent** | `alex.agent@example.com` | Alex Murphy (Security & Auth) | Agent Portal & Feed |
+| **Agent** | `david.agent@example.com` | David Miller (Billing Specialist) | Agent Portal & Feed |
+| **Agent** | `elena.agent@example.com` | Elena Rostova (General Support) | Agent Portal & Feed |
+| **Customer** | `john.customer@example.com` | John Doe | Customer Portal |
+| **Customer** | `emily.customer@example.com` | Emily Blunt | Customer Portal |
+| **Customer** | `bruce.wayne@example.com` | Bruce Wayne (VIP Account) | Customer Portal |
 
-### 5. Build Assets & Start Application
+---
+
+### 6. Background Queue Workers & Laravel Horizon
+
+The application uses **Laravel Horizon** for production-grade queue supervision, auto-scaling, failure handling, and metrics.
+
+1. **Start Horizon Supervisor:**
+   ```bash
+   php artisan horizon
+   ```
+   *Horizon automatically provisions workers across all active queues: `default`, `notifications`, `routing`, `maintenance`, and `broadcasts`.*
+
+2. **Access the Horizon Dashboard:**
+   - URL: `http://localhost:8000/horizon`
+   - **Authorization:** Only authenticated users with the **`Admin`** role (e.g. `admin@example.com`) are granted access via the `viewHorizon` gate.
+
+3. **Start the Console Scheduler (Snapshots & Maintenance):**
+   ```bash
+   php artisan schedule:work
+   ```
+   *Automatically takes Horizon metrics snapshots every 5 minutes (`horizon:snapshot`), escalates overdue SLA tickets, auto-closes inactive tickets, and prunes expired idempotency records.*
+
+---
+
+### 7. Build Assets & Start Application
+
 ```bash
 # Build frontend assets
 npm run build
 
-# Start local server
+# Start local backend server
 php artisan serve
 ```
 
-For frontend development with live hot-reloading:
+For interactive frontend development with live Hot Module Replacement (HMR):
 ```bash
 npm run dev
 ```
 
-### 6. Start Queue Worker
-To process background notifications, auto-escalations, and routing jobs:
+For local WebSocket broadcasting, start Reverb:
 ```bash
-php artisan queue:work redis --queue=notifications,default,maintenance
+php artisan reverb:start --debug
 ```
 
 ---

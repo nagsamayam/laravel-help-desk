@@ -6,12 +6,14 @@ use App\Domain\Ticket\Providers\TicketEventServiceProvider;
 use App\Domain\Ticket\Providers\TicketServiceProvider;
 use App\Infrastructure\Notifications\Providers\NotificationServiceProvider;
 use App\Providers\AppServiceProvider;
+use App\Providers\HorizonServiceProvider;
 
 return [
-    AppServiceProvider::class,
-    TicketServiceProvider::class,
-    TicketEventServiceProvider::class,
-    IdentityServiceProvider::class,
     AuditServiceProvider::class,
+    IdentityServiceProvider::class,
+    TicketEventServiceProvider::class,
+    TicketServiceProvider::class,
     NotificationServiceProvider::class,
+    AppServiceProvider::class,
+    HorizonServiceProvider::class,
 ];
