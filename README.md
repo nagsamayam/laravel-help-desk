@@ -1,8 +1,8 @@
 # HelpDesk
 
-A modern, production-grade HelpDesk application built with **PHP 8.2+ / Laravel 13**, **MySQL 8.4 LTS**, **Redis**, and a **React 19 Single Page Application (SPA)** styled with **Tailwind CSS v4** and **shadcn/ui** components.
+A modern HelpDesk application built with **PHP 8.2+ / Laravel 13**, **MySQL 8.4 LTS**, **Redis**, and a **React 19 Single Page Application (SPA)** styled with **Tailwind CSS v4** and **shadcn/ui** components.
 
-The project demonstrates Domain-Driven Design (DDD), battle-tested software design patterns, resilient transactional idempotency, background job queues, multi-stakeholder email notifications, and comprehensive test coverage.
+Developed exclusively for learning purposes and technical skill refreshment, The project demonstrates Domain-Driven Design (DDD), software design patterns, resilient transactional idempotency, background job queues, multi-stakeholder email notifications, and comprehensive test coverage.
 
 ---
 
