@@ -131,6 +131,39 @@ services:
     networks:
       - monitoring
 
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    networks:
+      - monitoring
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - "run"
+      - "/etc/alloy/config.alloy"
+      - "--server.http.listen-addr=0.0.0.0:12345"
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Laravel logs
+      - ./storage/logs:/var/log/laravel:ro
+    depends_on:
+      - loki
+    networks:
+      - monitoring
+
   redis:
     image: redis:alpine
     restart: unless-stopped
@@ -153,3 +186,4 @@ volumes:
   pmm_data:
   prometheus_data:
   grafana_data:
+  loki_data:

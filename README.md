@@ -1,14 +1,20 @@
 # HelpDesk
 
-A modern HelpDesk application built with **PHP 8.2+ / Laravel 13**, **MySQL 8.4 LTS**, **Redis**, and a **React 19 Single Page Application (SPA)** styled with **Tailwind CSS v4** and **shadcn/ui** components.
+A modern HelpDesk application built with **PHP 8.2+ / Laravel 13**,
+**MySQL 8.4 LTS**, **Redis**, and a **React 19 Single Page Application
+(SPA)** styled with **Tailwind CSS v4** and **shadcn/ui** components.
 
-Developed exclusively for learning purposes and technical skill refreshment, The project demonstrates Domain-Driven Design (DDD), software design patterns, resilient transactional idempotency, background job queues, multi-stakeholder email notifications, and comprehensive test coverage.
+Developed exclusively for learning purposes and technical skill
+refreshment, The project demonstrates Domain-Driven Design (DDD),
+software design patterns, resilient transactional idempotency,
+background job queues, multi-stakeholder email notifications, and
+comprehensive test coverage.
 
----
+------------------------------------------------------------------------
 
 ## Architecture Overview
 
-```text
+``` text
                                ┌────────────────────────────────────────┐
                                │   React 19 SPA (Vite + Tailwind v4)    │
                                │  TanStack Query v5 + Zustand + shadcn  │
@@ -53,72 +59,163 @@ Developed exclusively for learning purposes and technical skill refreshment, The
             └─────────────────────┘                       └─────────────────────┘
 ```
 
----
+------------------------------------------------------------------------
 
 ## Key Features
 
 ### 1. Robust Domain-Driven Architecture (DDD)
-- **Bounded Contexts:** Clear separation between `Domain/Ticket`, `Domain/Identity`, and `Domain/Audit`.
-- **Domain Service Providers:** Modular providers (`TicketServiceProvider`, `TicketEventServiceProvider`, `IdentityServiceProvider`, `AuditServiceProvider`, `NotificationServiceProvider`) maintain clean separation of concerns.
-- **Rich Domain Entities & Actions:** Business logic encapsulated in immutable DTOs and Action classes (`CreateTicketAction`, `UpdateTicketAction`, `ResolveTicketAction`, `CloseTicketAction`, `ReopenTicketAction`, `AssignTicketAction`, `AddTicketMessageAction`).
+
+-   **Bounded Contexts:** Clear separation between `Domain/Ticket`,
+    `Domain/Identity`, and `Domain/Audit`.
+-   **Domain Service Providers:** Modular providers
+    (`TicketServiceProvider`, `TicketEventServiceProvider`,
+    `IdentityServiceProvider`, `AuditServiceProvider`,
+    `NotificationServiceProvider`) maintain clean separation of
+    concerns.
+-   **Rich Domain Entities & Actions:** Business logic encapsulated in
+    immutable DTOs and Action classes (`CreateTicketAction`,
+    `UpdateTicketAction`, `ResolveTicketAction`, `CloseTicketAction`,
+    `ReopenTicketAction`, `AssignTicketAction`,
+    `AddTicketMessageAction`).
 
 ### 2. Applied Software Design Patterns
-- **State Pattern (`App\States\Ticket`):** Ticket state machine with strictly validated lifecycle transitions (`Open`, `InProgress`, `WaitingForCustomer`, `Resolved`, `Closed`).
-- **Strategy Pattern (`App\Strategies\Assignment`):** Plug-and-play agent assignment strategies (`RoundRobinAssignment`, `LeastBusyAgentAssignment`, `SkillBasedAssignment`) managed via `TicketAssignmentService`.
-- **Chain of Responsibility Pattern (`App\Routing`):** Configurable automated ticket routing pipeline (`VipRoutingRule` → `UrgentPriorityRoutingRule` → `CategoryRoutingRule` → `DefaultRoutingRule`).
-- **Command / Action Pattern (`App\Actions`):** Cohesive, reusable business use cases.
-- **Decorator Pattern (`App\Services\Notifications`):** Transparently layered notification sender pipeline (`LoggingNotificationSenderDecorator` → `MetricsNotificationSenderDecorator` → `RetryNotificationSenderDecorator` → `EmailNotificationSender`).
-- **Specification Pattern (`App\Specifications\Ticket`):** Composable in-memory and database query specifications (`OpenTicketSpecification`, `UrgentTicketSpecification`, `OverdueTicketSpecification`, `AssignedToAgentSpecification`, etc.) supporting `and`, `or`, and `not` boolean operators.
-- **Events / Observer Pattern (`App\Events\Tickets`, `App\Observers`):** Decoupled domain lifecycle events (`TicketCreated`, `TicketStatusChanged`, `TicketAssigned`, `TicketMessageAdded`) and `TicketObserver` for automated audit logging.
+
+-   **State Pattern (`App\States\Ticket`):** Ticket state machine with
+    strictly validated lifecycle transitions (`Open`, `InProgress`,
+    `WaitingForCustomer`, `Resolved`, `Closed`).
+-   **Strategy Pattern (`App\Strategies\Assignment`):** Plug-and-play
+    agent assignment strategies (`RoundRobinAssignment`,
+    `LeastBusyAgentAssignment`, `SkillBasedAssignment`) managed via
+    `TicketAssignmentService`.
+-   **Chain of Responsibility Pattern (`App\Routing`):** Configurable
+    automated ticket routing pipeline (`VipRoutingRule` →
+    `UrgentPriorityRoutingRule` → `CategoryRoutingRule` →
+    `DefaultRoutingRule`).
+-   **Command / Action Pattern (`App\Actions`):** Cohesive, reusable
+    business use cases.
+-   **Decorator Pattern (`App\Services\Notifications`):** Transparently
+    layered notification sender pipeline
+    (`LoggingNotificationSenderDecorator` →
+    `MetricsNotificationSenderDecorator` →
+    `RetryNotificationSenderDecorator` → `EmailNotificationSender`).
+-   **Specification Pattern (`App\Specifications\Ticket`):** Composable
+    in-memory and database query specifications
+    (`OpenTicketSpecification`, `UrgentTicketSpecification`,
+    `OverdueTicketSpecification`, `AssignedToAgentSpecification`, etc.)
+    supporting `and`, `or`, and `not` boolean operators.
+-   **Events / Observer Pattern (`App\Events\Tickets`,
+    `App\Observers`):** Decoupled domain lifecycle events
+    (`TicketCreated`, `TicketStatusChanged`, `TicketAssigned`,
+    `TicketMessageAdded`) and `TicketObserver` for automated audit
+    logging.
 
 ### 3. Production-Grade Transactional Idempotency
-- **Database-Authoritative Integrity:** MySQL composite unique constraints (`scope_type`, `scope_id`, `operation`, `key_hash`) guarantee single-execution semantics.
-- **Deterministic Payload Hashing:** SHA-256 canonical request hashing prevents key reuse with differing payloads (`IdempotencyConflictException` → HTTP 409).
-- **Concurrency & In-Flight Collision Guard:** Redis distributed locks optimize throughput; concurrent duplicate submissions waiting on processing gracefully return HTTP 409 with `Retry-After: 2` (`IdempotencyInFlightException`).
-- **Resource Metadata Persistence:** Captures `resource_type` (e.g. `'ticket'`) and `resource_id` alongside replayed headers and response envelopes.
-- **Automatic Background Maintenance:** Scheduled chunked pruning via `IdempotencyKey` and `php artisan model:prune` / `php artisan idempotency:prune`.
+
+-   **Database-Authoritative Integrity:** MySQL composite unique
+    constraints (`scope_type`, `scope_id`, `operation`, `key_hash`)
+    guarantee single-execution semantics.
+-   **Deterministic Payload Hashing:** SHA-256 canonical request hashing
+    prevents key reuse with differing payloads
+    (`IdempotencyConflictException` → HTTP 409).
+-   **Concurrency & In-Flight Collision Guard:** Redis distributed locks
+    optimize throughput; concurrent duplicate submissions waiting on
+    processing gracefully return HTTP 409 with `Retry-After: 2`
+    (`IdempotencyInFlightException`).
+-   **Resource Metadata Persistence:** Captures `resource_type`
+    (e.g. `'ticket'`) and `resource_id` alongside replayed headers and
+    response envelopes.
+-   **Automatic Background Maintenance:** Scheduled chunked pruning via
+    `IdempotencyKey` and `php artisan model:prune` /
+    `php artisan idempotency:prune`.
 
 ### 4. Background Queues & Asynchronous Jobs
-- **Queued Notification Dispatching:** `SendTicketNotificationListener` implements `ShouldQueue` on the `notifications` queue with backoff retries, rate limiting (`RateLimited('notifications')`), and exception throttling (`ThrottlesExceptions`).
-- **Domain Background Maintenance:**
-  - `EscalateOverdueTicketsJob`: Scans and escalates SLA-breached tickets with `ShouldBeUnique` deduplication.
-  - `AutoCloseResolvedTicketsJob`: Transitions stale resolved tickets to closed.
-  - `ProcessTicketRoutingJob`: Asynchronously routes tickets through the routing rules pipeline.
-- **Console Scheduling:** Scheduled execution in `routes/console.php` with `withoutOverlapping()` and `onOneServer()` protection.
+
+-   **Queued Notification Dispatching:**
+    `SendTicketNotificationListener` implements `ShouldQueue` on the
+    `notifications` queue with backoff retries, rate limiting
+    (`RateLimited('notifications')`), and exception throttling
+    (`ThrottlesExceptions`).
+-   **Domain Background Maintenance:**
+    -   `EscalateOverdueTicketsJob`: Scans and escalates SLA-breached
+        tickets with `ShouldBeUnique` deduplication.
+    -   `AutoCloseResolvedTicketsJob`: Transitions stale resolved
+        tickets to closed.
+    -   `ProcessTicketRoutingJob`: Asynchronously routes tickets through
+        the routing rules pipeline.
+-   **Console Scheduling:** Scheduled execution in `routes/console.php`
+    with `withoutOverlapping()` and `onOneServer()` protection.
 
 ### 5. Multi-Stakeholder Transactional Emails
-- **Styled Blade Mailables:** `TicketNotificationMail` delivers responsive HTML and plain-text emails.
-- **Role-Aware Routing:** Tailored notifications for Customers (ticket receipts, agent assignments, status updates), Support Admins (new ticket triage alerts), and Support Agents (assignment alerts, customer replies, internal notes).
-- **Security Boundary:** Internal staff notes are strictly isolated from customer notifications.
+
+-   **Styled Blade Mailables:** `TicketNotificationMail` delivers
+    responsive HTML and plain-text emails.
+-   **Role-Aware Routing:** Tailored notifications for Customers (ticket
+    receipts, agent assignments, status updates), Support Admins (new
+    ticket triage alerts), and Support Agents (assignment alerts,
+    customer replies, internal notes).
+-   **Security Boundary:** Internal staff notes are strictly isolated
+    from customer notifications.
 
 ### 6. Modern React 19 Single Page Application (SPA)
-- **Frontend Stack:** React 19, Vite, Tailwind CSS v4, Lucide React icons, TanStack React Query v5, Zustand state store, and Sonner/Toast notifications.
-- **shadcn/ui Architecture:** Accessible UI primitives (`Button`, `Input`, `Select`, `Card`, `Modal`, `Table`, `Badge`, `Tabs`, `Toast`).
-- **Live Workflows:** Specification-based quick filtering (Urgent, Overdue SLA, Unassigned), interactive state transition dialogs, strategy-based & manual agent assignment, conversation feed with internal note toggle, status timeline, and JSON audit diff viewer.
-- **Automatic Client Resilience:** Axios interceptor with automatic UUIDv4 `Idempotency-Key` headers on mutating requests and automatic backoff retry on HTTP 409 in-flight collisions.
 
----
+-   **Frontend Stack:** React 19, Vite, Tailwind CSS v4, Lucide React
+    icons, TanStack React Query v5, Zustand state store, and
+    Sonner/Toast notifications.
+-   **shadcn/ui Architecture:** Accessible UI primitives (`Button`,
+    `Input`, `Select`, `Card`, `Modal`, `Table`, `Badge`, `Tabs`,
+    `Toast`).
+-   **Live Workflows:** Specification-based quick filtering (Urgent,
+    Overdue SLA, Unassigned), interactive state transition dialogs,
+    strategy-based & manual agent assignment, conversation feed with
+    internal note toggle, status timeline, and JSON audit diff viewer.
+-   **Automatic Client Resilience:** Axios interceptor with automatic
+    UUIDv4 `Idempotency-Key` headers on mutating requests and automatic
+    backoff retry on HTTP 409 in-flight collisions.
+
+------------------------------------------------------------------------
 
 ## Technology Stack
 
-| Layer | Technologies |
-|---|---|
-| **Backend Framework** | PHP 8.2+, Laravel 11/12 |
-| **Database** | MySQL 8.4 LTS (ACID source of truth) |
-| **Cache & Queues** | Redis (Distributed locking, high-speed replay cache, async workers) |
-| **Queue Supervision** | Laravel Horizon (Real-time queue monitoring, auto-scaling, metrics dashboard) |
-| **Authentication** | JWT Authentication (`php-open-source-saver/jwt-auth`) with RS256 / asymmetric key support |
-| **Frontend Framework** | React 19, Vite |
-| **Styling & Components**| Tailwind CSS v4, shadcn/ui component architecture, Lucide React |
-| **State Management** | TanStack React Query v5 (server state), Zustand (client session state) |
-| **Real-time Engine** | Laravel Reverb (WebSockets), Laravel Echo, Pusher-JS |
-| **Code Quality & Tests**| Pest / PHPUnit (106+ tests, 500+ assertions), Laravel Pint |
+  ------------------------------------------------------------------------
+  Layer                               Technologies
+  ----------------------------------- ------------------------------------
+  **Backend Framework**               PHP 8.2+, Laravel 11/12
 
----
+  **Database**                        MySQL 8.4 LTS (ACID source of truth)
+
+  **Cache & Queues**                  Redis (Distributed locking,
+                                      high-speed replay cache, async
+                                      workers)
+
+  **Queue Supervision**               Laravel Horizon (Real-time queue
+                                      monitoring, auto-scaling, metrics
+                                      dashboard)
+
+  **Authentication**                  JWT Authentication
+                                      (`php-open-source-saver/jwt-auth`)
+                                      with RS256 / asymmetric key support
+
+  **Frontend Framework**              React 19, Vite
+
+  **Styling & Components**            Tailwind CSS v4, shadcn/ui component
+                                      architecture, Lucide React
+
+  **State Management**                TanStack React Query v5 (server
+                                      state), Zustand (client session
+                                      state)
+
+  **Real-time Engine**                Laravel Reverb (WebSockets), Laravel
+                                      Echo, Pusher-JS
+
+  **Code Quality & Tests**            Pest / PHPUnit (106+ tests, 500+
+                                      assertions), Laravel Pint
+  ------------------------------------------------------------------------
+
+------------------------------------------------------------------------
 
 ## Project Structure (Domain-Driven Design)
 
-```text
+``` text
 app/
 ├── Console/Commands/         # Artisan CLI commands (Custom PruneCommand, etc.)
 ├── Domain/                   # Bounded Contexts (Core Business Domain)
@@ -172,367 +269,76 @@ resources/js/                 # React 19 SPA Frontend
 └── stores/                   # Zustand stores (useAuthStore, useUiStore)
 ```
 
----
+------------------------------------------------------------------------
 
 ## Installation & Setup
 
 ### 1. Prerequisites
-- **PHP 8.2+** with extensions (`pdo_mysql`, `redis`, `mbstring`, `bcmath`, `curl`)
-- **Composer 2.x**
-- **Node.js 20+** & **npm**
-- **Docker & Docker Compose** (for containerized MySQL 8.4 & Redis services)
 
----
+-   **PHP 8.2+** with extensions (`pdo_mysql`, `redis`, `mbstring`,
+    `bcmath`, `curl`)
+-   **Composer 2.x**
+-   **Node.js 20+** & **npm**
+-   **Docker & Docker Compose** (for containerized MySQL 8.4 & Redis
+    services)
+
+------------------------------------------------------------------------
 
 ### 2. Start MySQL & Redis via Docker Compose
 
-The project includes a ready-to-run `compose.yml` defining **MySQL 8.4 LTS** and **Redis (Alpine)** with health checks and persistent volume storage.
+The project includes a ready-to-run `compose.yml` defining **MySQL 8.4
+LTS** and **Redis (Alpine)** with health checks and persistent volume
+storage.
 
-1. **Start the containers in detached mode:**
-   ```bash
-   docker compose up -d
-   ```
+1.  **Start the containers in detached mode:**
 
-2. **Verify container health and port bindings:**
-   ```bash
-   docker compose ps
-   ```
-   *Expected output:*
-   - `mysql` listening on `0.0.0.0:3306->3306` (Status: `healthy`)
-   - `redis` listening on `0.0.0.0:6379->6379` (Status: `healthy`)
+    ``` bash
+    docker compose up -d
+    ```
 
-3. **Useful Docker management commands:**
-   ```bash
-   # View container logs
-   docker compose logs -f
+2.  **Verify container health and port bindings:**
 
-   # Test Redis connectivity
-   docker compose exec redis redis-cli ping
-   # Output: PONG
+    ``` bash
+    docker compose ps
+    ```
 
-   # Connect to MySQL CLI
-   docker compose exec mysql mysql -u root -p
-   
-   # Stop containers (preserves volume data)
-   docker compose down
-   ```
+    *Expected output:*
 
+    -   `mysql` listening on `0.0.0.0:3306->3306` (Status: `healthy`)
+    -   `redis` listening on `0.0.0.0:6379->6379` (Status: `healthy`)
 
----
+3.  **Useful Docker management commands:**
 
-### 3. Percona Monitoring and Management (PMM)
+    ``` bash
+    # View container logs
+    docker compose logs -f
 
-The project includes **Percona Monitoring and Management (PMM)** for local MySQL observability. PMM provides MySQL performance dashboards and Query Analytics (QAN) for inspecting database activity, query performance, connections, and other production-style database metrics.
+    # Test Redis connectivity
+    docker compose exec redis redis-cli ping
+    # Output: PONG
 
-The Docker Compose setup includes:
+    # Connect to MySQL CLI
+    docker compose exec mysql mysql -u root -p
 
-- **`pmm-server`** — PMM Server and dashboard UI, available at `https://localhost:8443`.
-- **`pmm-client`** — PMM Agent/client used to register the local MySQL service with PMM.
-- **`mysql`** — MySQL 8.4 LTS database being monitored.
+    # Stop containers (preserves volume data)
+    docker compose down
+    ```
 
-#### 3.1 Create the PMM MySQL Monitoring User
+------------------------------------------------------------------------
 
-If the PMM client is configured to use the dedicated `pmm_monitor` account, create the account inside MySQL before registering the database with PMM:
+### 3. Clone & Configure Environment
 
-```sql
-CREATE USER 'pmm_monitor'@'%' IDENTIFIED BY 'pmm_password';
-
-GRANT SELECT, PROCESS, REPLICATION CLIENT, RELOAD
-ON *.* TO 'pmm_monitor'@'%';
-```
-
-> **Note:** These credentials are intended for this local learning environment. For production, use secrets management and the least-privilege permissions appropriate for your deployment.
-
-#### 3.2 Access the PMM Dashboard
-
-Open:
-
-```text
-https://localhost:8443
-```
-
-After login, check the MySQL dashboards and **Query Analytics (QAN)** for the registered `local-docker-mysql` service.
-
-#### 3.3 If MySQL Is Not Showing in the PMM Dashboard
-
-If PMM Server is running but MySQL is not visible in the PMM dashboard, manually register MySQL from the `pmm-client` container:
-
-```bash
-docker exec -it pmm-client pmm-admin add mysql \
-  --username=root \
-  --password=<mysql_root_password> \
-  --host=mysql \
-  --port=3306 \
-  --query-source=perfschema \
-  local-docker-mysql
-```
-Register Redis/Valkey from the `pmm-client` container:
-
-```bash
-docker exec -it pmm-client pmm-admin add valkey \
-  --host=redis \
-  --port=6379 \
-  local-docker-redis
-```
-
-Verify the registered services:
-
-```bash
-docker exec -it pmm-client pmm-admin list
-```
-
-You should see `local-docker-mysql` listed as a MySQL service. Refresh the PMM dashboard after registration.
-
-> **Recommended:** If you have created the dedicated `pmm_monitor` account above, use it instead of `root`:
->
-> ```bash
-> docker exec -it pmm-client pmm-admin add mysql \
->   --username=pmm_monitor \
->   --password=pmm_password \
->   --host=mysql \
->   --port=3306 \
->   --query-source=perfschema \
->   local-docker-mysql
-> ```
-
-#### 3.4 Useful PMM Client Commands
-
-```bash
-# Check PMM agent status
-docker exec -it pmm-client pmm-admin status
-
-# List monitored services
-docker exec -it pmm-client pmm-admin list
-
-# View PMM client logs
-docker logs -f pmm-client
-
-# View PMM server logs
-docker logs -f pmm-server
-```
-
----
-
-### 4. Prometheus & Grafana HTTP Monitoring
-
-The project includes Prometheus and Grafana for Laravel HTTP observability. The existing `promphp/prometheus_client_php` Composer dependency is used with Redis storage so metrics survive across Laravel requests.
-
-The monitoring flow is:
-
-```text
-Laravel HTTP requests
-        |
-        v
-RecordHttpMetrics middleware
-        |
-        v
-Redis-backed Prometheus metrics
-        |
-        v
-/metrics
-        |
-        v
-Prometheus
-        |
-        v
-Grafana dashboard
-```
-
-The current Docker Compose setup runs MySQL, Redis, PMM, Prometheus, and Grafana in Docker. Laravel itself is run from the host, so Prometheus scrapes Laravel through `host.docker.internal:8000`.
-
-#### 4.1 Start the monitoring containers
-
-```bash
-docker compose up -d mysql redis pmm-server pmm-client prometheus grafana
-docker compose ps
-```
-
-Expected monitoring endpoints:
-
-```text
-Prometheus: http://localhost:9090
-Grafana:    http://localhost:3000
-Laravel:    http://localhost:8000
-Metrics:    http://localhost:8000/metrics
-```
-
-#### 4.2 Start Laravel so Docker can scrape it
-
-Because Laravel is running on the host, bind the development server to all interfaces:
-
-```bash
-php artisan serve --host=0.0.0.0 --port=8000
-```
-
-Do not use only `php artisan serve` for this setup because the default loopback binding can prevent the Prometheus container from reaching Laravel.
-
-#### 4.3 Configure Prometheus metrics
-
-The application registers `RecordHttpMetrics` as a global Laravel middleware. It records:
-
-- `helpdesk_http_requests_total` — request count
-- `helpdesk_http_request_duration_seconds` — HTTP latency histogram
-- `helpdesk_http_requests_in_flight` — current requests being processed
-
-Metric labels are intentionally limited to:
-
-```text
-method
-route
-status
-```
-
-Do not add user IDs, ticket IDs, email addresses, full URLs, or other unbounded values as Prometheus labels because they create high-cardinality time series.
-
-Prometheus scrapes:
-
-```text
-http://host.docker.internal:8000/metrics
-```
-
-Check the target at:
-
-```text
-http://localhost:9090/targets
-```
-
-The `laravel` target should show `UP`.
-
-You can also verify the endpoint directly from the host:
-
-```bash
-curl http://localhost:8000/metrics
-```
-
-You should see metrics such as:
-
-```text
-helpdesk_http_requests_total
-helpdesk_http_request_duration_seconds_bucket
-helpdesk_http_requests_in_flight
-```
-
-#### 4.4 Grafana dashboard
-
-Grafana is provisioned automatically with:
-
-- Prometheus datasource
-- `HelpDesk - HTTP Monitoring` dashboard
-- Request rate
-- 5xx error rate
-- p95 HTTP latency
-- Request rate by route
-- p95 latency by route
-- HTTP status rate
-- Requests in flight
-
-Open:
-
-```text
-http://localhost:3000
-```
-
-The dashboard is loaded automatically from:
-
-```text
-grafana/dashboards/helpdesk-http.json
-```
-
-The Grafana datasource uses the Docker-internal URL:
-
-```text
-http://prometheus:9090
-```
-
-Do not use `http://localhost:9090` for the Grafana datasource because Grafana itself runs inside Docker.
-
-#### 4.5 Useful PromQL queries
-
-Requests per second:
-
-```promql
-sum(rate(helpdesk_http_requests_total[5m]))
-```
-
-Requests by route:
-
-```promql
-sum by (route) (rate(helpdesk_http_requests_total[5m]))
-```
-
-5xx requests per second:
-
-```promql
-sum(rate(helpdesk_http_requests_total{status=~"5.."}[5m]))
-```
-
-p95 latency:
-
-```promql
-histogram_quantile(
-  0.95,
-  sum by (le) (
-    rate(helpdesk_http_request_duration_seconds_bucket[5m])
-  )
-)
-```
-
-p95 latency by route:
-
-```promql
-histogram_quantile(
-  0.95,
-  sum by (le, route) (
-    rate(helpdesk_http_request_duration_seconds_bucket[5m])
-  )
-)
-```
-
-#### 4.6 Troubleshooting
-
-If the Grafana dashboard is empty:
-
-```bash
-docker compose ps prometheus grafana
-```
-
-Then check Prometheus:
-
-```bash
-curl http://localhost:9090/-/healthy
-curl http://localhost:9090/targets
-```
-
-Check Laravel metrics:
-
-```bash
-curl http://localhost:8000/metrics
-```
-
-Check Prometheus logs:
-
-```bash
-docker logs prometheus --tail 100
-```
-
-If the Prometheus `laravel` target is `DOWN`, verify Laravel is running with:
-
-```bash
-php artisan serve --host=0.0.0.0 --port=8000
-```
-
-### 5. Clone & Configure Environment
-
-```bash
+``` bash
 git clone https://github.com/your-org/laravel-help-desk.git
 cd laravel-help-desk
 
 cp .env.example .env
 ```
 
-Ensure your `.env` contains the matching connection settings for the Docker containers:
+Ensure your `.env` contains the matching connection settings for the
+Docker containers:
 
-```dotenv
+``` dotenv
 APP_NAME=HelpDesk
 APP_ENV=local
 APP_KEY=
@@ -578,10 +384,11 @@ MAIL_FROM_ADDRESS="support@helpdesk.test"
 MAIL_FROM_NAME="HelpDesk Support"
 ```
 
----
+------------------------------------------------------------------------
 
 ### 4. Install Dependencies & Generate Keys
-```bash
+
+``` bash
 composer install
 npm install
 
@@ -589,53 +396,84 @@ php artisan key:generate
 php artisan jwt:secret
 ```
 
----
+------------------------------------------------------------------------
 
 ### 5. Run Migrations & Seed Test Data
-```bash
+
+``` bash
 # Runs all database migrations and seeds realistic domain test data
 php artisan migrate:fresh --seed
 ```
 
 #### Pre-Configured Seed Accounts (Password: `password`)
-| Role | Email | Name | Access Level |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@example.com` | System Administrator | Full System & `/horizon` Access |
-| **Agent** | `sarah.agent@example.com` | Sarah Connor (Senior Technical) | Agent Portal & Feed |
-| **Agent** | `alex.agent@example.com` | Alex Murphy (Security & Auth) | Agent Portal & Feed |
-| **Agent** | `david.agent@example.com` | David Miller (Billing Specialist) | Agent Portal & Feed |
-| **Agent** | `elena.agent@example.com` | Elena Rostova (General Support) | Agent Portal & Feed |
-| **Customer** | `john.customer@example.com` | John Doe | Customer Portal |
-| **Customer** | `emily.customer@example.com` | Emily Blunt | Customer Portal |
-| **Customer** | `bruce.wayne@example.com` | Bruce Wayne (VIP Account) | Customer Portal |
 
----
+  ------------------------------------------------------------------------------------
+  Role              Email                          Name              Access Level
+  ----------------- ------------------------------ ----------------- -----------------
+  **Admin**         `admin@example.com`            System            Full System &
+                                                   Administrator     `/horizon` Access
+
+  **Agent**         `sarah.agent@example.com`      Sarah Connor      Agent Portal &
+                                                   (Senior           Feed
+                                                   Technical)        
+
+  **Agent**         `alex.agent@example.com`       Alex Murphy       Agent Portal &
+                                                   (Security & Auth) Feed
+
+  **Agent**         `david.agent@example.com`      David Miller      Agent Portal &
+                                                   (Billing          Feed
+                                                   Specialist)       
+
+  **Agent**         `elena.agent@example.com`      Elena Rostova     Agent Portal &
+                                                   (General Support) Feed
+
+  **Customer**      `john.customer@example.com`    John Doe          Customer Portal
+
+  **Customer**      `emily.customer@example.com`   Emily Blunt       Customer Portal
+
+  **Customer**      `bruce.wayne@example.com`      Bruce Wayne (VIP  Customer Portal
+                                                   Account)          
+  ------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------
 
 ### 6. Background Queue Workers & Laravel Horizon
 
-The application uses **Laravel Horizon** for production-grade queue supervision, auto-scaling, failure handling, and metrics.
+The application uses **Laravel Horizon** for production-grade queue
+supervision, auto-scaling, failure handling, and metrics.
 
-1. **Start Horizon Supervisor:**
-   ```bash
-   php artisan horizon
-   ```
-   *Horizon automatically provisions workers across all active queues: `default`, `notifications`, `routing`, `maintenance`, and `broadcasts`.*
+1.  **Start Horizon Supervisor:**
 
-2. **Access the Horizon Dashboard:**
-   - URL: `http://localhost:8000/horizon`
-   - **Authorization:** Only authenticated users with the **`Admin`** role (e.g. `admin@example.com`) are granted access via the `viewHorizon` gate.
+    ``` bash
+    php artisan horizon
+    ```
 
-3. **Start the Console Scheduler (Snapshots & Maintenance):**
-   ```bash
-   php artisan schedule:work
-   ```
-   *Automatically takes Horizon metrics snapshots every 5 minutes (`horizon:snapshot`), escalates overdue SLA tickets, auto-closes inactive tickets, and prunes expired idempotency records.*
+    *Horizon automatically provisions workers across all active queues:
+    `default`, `notifications`, `routing`, `maintenance`, and
+    `broadcasts`.*
 
----
+2.  **Access the Horizon Dashboard:**
+
+    -   URL: `http://localhost:8000/horizon`
+    -   **Authorization:** Only authenticated users with the **`Admin`**
+        role (e.g. `admin@example.com`) are granted access via the
+        `viewHorizon` gate.
+
+3.  **Start the Console Scheduler (Snapshots & Maintenance):**
+
+    ``` bash
+    php artisan schedule:work
+    ```
+
+    *Automatically takes Horizon metrics snapshots every 5 minutes
+    (`horizon:snapshot`), escalates overdue SLA tickets, auto-closes
+    inactive tickets, and prunes expired idempotency records.*
+
+------------------------------------------------------------------------
 
 ### 7. Build Assets & Start Application
 
-```bash
+``` bash
 # Build frontend assets
 npm run build
 
@@ -643,62 +481,870 @@ npm run build
 php artisan serve
 ```
 
-For interactive frontend development with live Hot Module Replacement (HMR):
-```bash
+For interactive frontend development with live Hot Module Replacement
+(HMR):
+
+``` bash
 npm run dev
 ```
 
 For local WebSocket broadcasting, start Reverb:
-```bash
+
+``` bash
 php artisan reverb:start --debug
 ```
 
----
+------------------------------------------------------------------------
+
+## Observability & Monitoring
+
+This project includes a local observability stack for application
+metrics, MySQL metrics, application/container logs, and database query
+analysis.
+
+### Observability Architecture
+
+``` text
+                                      ┌─────────────────────────────┐
+                                      │           Grafana            │
+                                      │   Dashboards + Explore       │
+                                      └──────────────┬──────────────┘
+                                                     │
+                              ┌──────────────────────┴──────────────────────┐
+                              │                                             │
+                              ▼                                             ▼
+                     ┌──────────────────┐                         ┌──────────────────┐
+                     │    Prometheus    │                         │       Loki       │
+                     │     Metrics      │                         │       Logs       │
+                     └────────┬─────────┘                         └────────┬─────────┘
+                              │                                            │
+                 ┌────────────┴─────────────┐                  ┌───────────┴───────────┐
+                 │                          │                  │                       │
+                 ▼                          ▼                  ▼                       ▼
+          Laravel /metrics          mysqld-exporter         Alloy               Laravel files
+                 │                          │              Docker logs          storage/logs/*.log
+                 │                          │
+                 └──────────────────────────┘
+                              │
+                              ▼
+                         MySQL 8.4
+
+                         ┌──────────────────┐
+                         │       PMM        │
+                         │ Query Analytics  │
+                         │ MySQL deep dive  │
+                         └──────────────────┘
+```
+
+### Components
+
+  ------------------------------------------------------------------------
+  Component                                     Port Purpose
+  --------------------- ---------------------------- ---------------------
+  **Grafana**                                 `3000` Dashboards, PromQL,
+                                                     LogQL and
+                                                     visualization
+
+  **Prometheus**                              `9090` Metrics collection
+                                                     and time-series
+                                                     storage
+
+  **Loki**                                    `3100` Log aggregation and
+                                                     LogQL queries
+
+  **Grafana Alloy**                          `12345` Collects Docker logs
+                                                     and Laravel log files
+
+  **mysqld-exporter**                         `9104` Exposes MySQL server
+                                                     metrics to Prometheus
+
+  **PMM Server**                              `8443` MySQL Query Analytics
+                                                     and deeper database
+                                                     monitoring
+  ------------------------------------------------------------------------
+
+> **Important:** Laravel runs on the host with `php artisan serve`,
+> while the monitoring components run in Docker. Prometheus therefore
+> reaches Laravel through `host.docker.internal:8000`. Docker-to-Docker
+> communication uses service names such as `prometheus:9090` and
+> `loki:3100`.
+
+------------------------------------------------------------------------
+
+## Grafana
+
+Open Grafana:
+
+``` text
+http://localhost:3000
+```
+
+Grafana is the visualization layer. It reads metrics from Prometheus and
+logs from Loki.
+
+### Prometheus data source
+
+Configure:
+
+``` text
+http://prometheus:9090
+```
+
+Do not use `http://localhost:9090` from inside the Grafana container.
+
+### Loki data source
+
+Configure:
+
+``` text
+http://loki:3100
+```
+
+Do not use `http://localhost:3100` from inside the Grafana container.
+
+### Useful LogQL queries
+
+All Docker logs:
+
+``` logql
+{job="docker"}
+```
+
+MySQL logs:
+
+``` logql
+{service="mysql"}
+```
+
+Grafana logs:
+
+``` logql
+{service="grafana"}
+```
+
+Laravel logs:
+
+``` logql
+{service="laravel"}
+```
+
+Laravel errors:
+
+``` logql
+{service="laravel"} |= "ERROR"
+```
+
+Laravel exceptions:
+
+``` logql
+{service="laravel"} |= "Exception"
+```
+
+Laravel application log files:
+
+``` logql
+{service="laravel", filename=~".*laravel.*"}
+```
+
+------------------------------------------------------------------------
+
+## Prometheus & Laravel Application Metrics
+
+Laravel exposes:
+
+``` text
+http://localhost:8000/metrics
+```
+
+Current application metrics:
+
+  ------------------------------------------------------------------------------
+  Metric                                     Purpose
+  ------------------------------------------ -----------------------------------
+  `helpdesk_http_requests_total`             Total HTTP requests
+
+  `helpdesk_http_request_duration_seconds`   HTTP request duration
+
+  `helpdesk_http_requests_in_flight`         Requests currently being processed
+  ------------------------------------------------------------------------------
+
+Current labels are intentionally low-cardinality:
+
+``` text
+method
+route
+status
+```
+
+Avoid labels such as `user_id`, `ticket_id`, `email`, `request_id`, or
+`full_url`.
+
+Prometheus configuration:
+
+``` yaml
+- job_name: laravel
+  metrics_path: /metrics
+  static_configs:
+    - targets:
+        - host.docker.internal:8000
+```
+
+Prometheus:
+
+``` text
+http://localhost:9090
+```
+
+Targets:
+
+``` text
+http://localhost:9090/targets
+```
+
+Useful PromQL:
+
+``` promql
+rate(helpdesk_http_requests_total[5m])
+```
+
+``` promql
+sum(rate(helpdesk_http_requests_total{status=~"5.."}[5m]))
+```
+
+------------------------------------------------------------------------
+
+## MySQL Monitoring with mysqld-exporter
+
+The MySQL metrics pipeline is:
+
+``` text
+MySQL 8.4
+    ↓
+mysqld-exporter :9104
+    ↓
+Prometheus :9090
+    ↓
+Grafana :3000
+```
+
+It provides server-level metrics such as connections, queries, slow
+queries, threads, aborted connections, temporary tables and table locks.
+
+### Docker Compose service
+
+``` yaml
+mysqld-exporter:
+  image: prom/mysqld-exporter:latest
+  container_name: mysqld-exporter
+  restart: unless-stopped
+  command:
+    - "--config.my-cnf=/.my.cnf"
+  volumes:
+    - ./prometheus/mysql/.my.cnf:/.my.cnf:ro
+  depends_on:
+    mysql:
+      condition: service_healthy
+  networks:
+    - monitoring
+```
+
+### Dedicated MySQL monitoring user
+
+``` sql
+CREATE USER 'prometheus'@'%'
+IDENTIFIED BY 'strong-monitor-password';
+
+GRANT PROCESS, REPLICATION CLIENT, SELECT
+ON *.* TO 'prometheus'@'%';
+```
+
+Create:
+
+``` text
+prometheus/mysql/.my.cnf
+```
+
+``` ini
+[client]
+user=prometheus
+password=strong-monitor-password
+host=mysql
+port=3306
+```
+
+Keep this file out of source control:
+
+``` gitignore
+prometheus/mysql/.my.cnf
+```
+
+### Prometheus target
+
+``` yaml
+- job_name: mysql
+  static_configs:
+    - targets:
+        - mysqld-exporter:9104
+```
+
+Verify:
+
+``` text
+http://localhost:9090/targets
+```
+
+The `mysql` target should be `UP`.
+
+Test the exporter:
+
+``` bash
+docker exec prometheus sh -c \
+  'wget -qO- http://mysqld-exporter:9104/metrics' | head
+```
+
+Inspect MySQL metrics:
+
+``` bash
+docker exec prometheus sh -c \
+  'wget -qO- http://mysqld-exporter:9104/metrics' \
+  | grep '^mysql_' | head -20
+```
+
+If port `9104` is published, the exporter is also available at:
+
+``` text
+http://localhost:9104/metrics
+```
+
+Useful PromQL:
+
+``` promql
+mysql_up
+```
+
+``` promql
+mysql_global_status_threads_connected
+```
+
+``` promql
+rate(mysql_global_status_queries[5m])
+```
+
+``` promql
+rate(mysql_global_status_slow_queries[5m])
+```
+
+``` promql
+mysql_global_status_threads_running
+```
+
+``` promql
+rate(mysql_global_status_aborted_connects[5m])
+```
+
+------------------------------------------------------------------------
+
+## Loki
+
+Loki is the log aggregation backend used by Grafana Alloy.
+
+From the host:
+
+``` text
+http://localhost:3100
+```
+
+From another monitoring container:
+
+``` text
+http://loki:3100
+```
+
+### Loki service
+
+``` yaml
+loki:
+  image: grafana/loki:latest
+  container_name: loki
+  restart: unless-stopped
+  command:
+    - "-config.file=/etc/loki/local-config.yaml"
+  ports:
+    - "3100:3100"
+  volumes:
+    - loki_data:/loki
+  networks:
+    - monitoring
+```
+
+Add:
+
+``` yaml
+volumes:
+  loki_data:
+```
+
+### Health checks
+
+``` bash
+curl http://localhost:3100/ready
+```
+
+Expected:
+
+``` text
+ready
+```
+
+Build information:
+
+``` bash
+curl http://localhost:3100/loki/api/v1/status/buildinfo
+```
+
+> Use `/ready` for health checks. The root URL is not the primary
+> readiness endpoint.
+
+### Loki labels
+
+Verify:
+
+``` bash
+curl -s http://localhost:3100/loki/api/v1/labels
+```
+
+The current setup exposes labels including:
+
+``` text
+container
+filename
+job
+service
+service_name
+```
+
+------------------------------------------------------------------------
+
+## Grafana Alloy
+
+Grafana Alloy collects both Docker container logs and Laravel log files.
+
+### Alloy service
+
+``` yaml
+alloy:
+  image: grafana/alloy:latest
+  container_name: alloy
+  restart: unless-stopped
+  command:
+    - "run"
+    - "/etc/alloy/config.alloy"
+    - "--server.http.listen-addr=0.0.0.0:12345"
+  ports:
+    - "12345:12345"
+  volumes:
+    - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    - ./storage/logs:/var/log/laravel:ro
+  depends_on:
+    - loki
+  networks:
+    - monitoring
+```
+
+Alloy UI:
+
+``` text
+http://localhost:12345
+```
+
+### Docker log collection
+
+``` alloy
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+}
+
+loki.source.docker "containers" {
+  host    = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.containers.output
+
+  labels = {
+    job = "docker",
+  }
+
+  forward_to = [loki.write.local.receiver]
+}
+```
+
+### Laravel file collection
+
+Because Laravel runs on the host, mount:
+
+``` yaml
+- ./storage/logs:/var/log/laravel:ro
+```
+
+Then configure Alloy:
+
+``` alloy
+local.file_match "laravel" {
+  path_targets = [
+    {
+      __path__ = "/var/log/laravel/*.log",
+      job      = "laravel",
+      service  = "laravel",
+    },
+  ]
+}
+
+loki.source.file "laravel" {
+  targets    = local.file_match.laravel.targets
+  forward_to = [loki.write.local.receiver]
+}
+```
+
+### Alloy → Loki
+
+``` alloy
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+```
+
+Restart after configuration changes:
+
+``` bash
+docker compose up -d --force-recreate alloy
+```
+
+Check:
+
+``` bash
+docker logs alloy --tail 100
+```
+
+Successful Laravel collection includes messages similar to:
+
+``` text
+start tailing file ... path=/var/log/laravel/laravel-2026-10-03.log
+```
+
+------------------------------------------------------------------------
+
+## Laravel Log Verification
+
+Generate a test log:
+
+``` bash
+php artisan tinker
+```
+
+``` php
+\Log::info('Loki integration test');
+```
+
+``` text
+exit
+```
+
+Then query Grafana Explore:
+
+``` logql
+{service="laravel"}
+```
+
+Or query Loki directly:
+
+``` bash
+curl -G -s \
+  --data-urlencode 'query={service="laravel"}' \
+  http://localhost:3100/loki/api/v1/query_range
+```
+
+------------------------------------------------------------------------
+
+## PMM and MySQL Query Analytics
+
+PMM complements Prometheus.
+
+Use **Prometheus + mysqld-exporter** for time-series MySQL server
+metrics.
+
+Use **PMM Query Analytics** for investigating SQL workload, query
+digests, latency and database behavior.
+
+PMM is available at:
+
+``` text
+https://localhost:8443
+```
+
+The current PMM client configuration uses:
+
+``` text
+query source = perfschema
+```
+
+A practical workflow is:
+
+``` text
+Grafana/Prometheus
+    ↓
+Detect MySQL metric anomaly
+    ↓
+PMM Query Analytics
+    ↓
+Investigate SQL workload
+```
+
+------------------------------------------------------------------------
+
+## Observability Troubleshooting
+
+Check monitoring containers:
+
+``` bash
+docker compose ps
+```
+
+Check Loki:
+
+``` bash
+curl http://localhost:3100/ready
+```
+
+Test container-to-Loki connectivity:
+
+``` bash
+docker exec prometheus sh -c \
+  'wget -qO- http://loki:3100/ready'
+```
+
+Check Alloy:
+
+``` bash
+docker logs alloy --tail 100
+```
+
+Check Loki labels:
+
+``` bash
+curl -s http://localhost:3100/loki/api/v1/labels
+```
+
+Check Prometheus targets:
+
+``` text
+http://localhost:9090/targets
+```
+
+Expected targets:
+
+``` text
+laravel       UP
+mysql         UP
+prometheus    UP
+```
+
+### Docker hostname rule
+
+Inside Docker use:
+
+``` text
+Prometheus → http://prometheus:9090
+Grafana    → http://prometheus:9090
+Grafana    → http://loki:3100
+Alloy      → http://loki:3100
+Prometheus → http://mysqld-exporter:9104
+Prometheus → http://host.docker.internal:8000
+```
+
+From the host/browser use:
+
+``` text
+Grafana    → http://localhost:3000
+Prometheus → http://localhost:9090
+Loki       → http://localhost:3100
+Alloy      → http://localhost:12345
+MySQL      → localhost:3306
+Redis      → localhost:6379
+PMM        → https://localhost:8443
+```
+
+------------------------------------------------------------------------
+
+## Safe Monitoring Cleanup
+
+Before cleanup:
+
+``` bash
+docker compose ps
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+docker system df
+docker volume ls
+```
+
+Reasonably safe cleanup candidates:
+
+``` bash
+docker container prune
+docker image prune
+docker network prune
+```
+
+Avoid these unless persistent data should intentionally be deleted:
+
+``` bash
+docker compose down -v
+docker volume prune
+```
+
+Persistent volumes include:
+
+``` text
+mysql_data
+redis_data
+pmm_data
+loki_data
+```
+
+Deleting them can remove MySQL, Redis, PMM, or Loki data.
+
+------------------------------------------------------------------------
+
+## Observability Quick Reference
+
+  Task                 URL / Command
+  -------------------- ----------------------------------------------------
+  Grafana              `http://localhost:3000`
+  Prometheus           `http://localhost:9090`
+  Prometheus targets   `http://localhost:9090/targets`
+  Loki                 `http://localhost:3100`
+  Loki readiness       `curl http://localhost:3100/ready`
+  Loki labels          `curl -s http://localhost:3100/loki/api/v1/labels`
+  Alloy UI             `http://localhost:12345`
+  MySQL exporter       `http://localhost:9104/metrics`
+  Laravel metrics      `http://localhost:8000/metrics`
+  PMM                  `https://localhost:8443`
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
 
 ## REST API Endpoints
 
-All API endpoints are versioned under `/api/v1` and return standardized JSON envelopes. For full endpoint documentation, request/response schemas, validation rules, and query parameters, see **[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)**.
+All API endpoints are versioned under `/api/v1` and return standardized
+JSON envelopes. For full endpoint documentation, request/response
+schemas, validation rules, and query parameters, see
+**[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)**.
 
 ### Quick Reference Summary
 
-| Resource | Method & Path | Description | Access |
-|---|---|---|---|
-| **Auth** | `POST /api/v1/auth/register` | Register customer or agent account | Public |
-| **Auth** | `POST /api/v1/auth/login` | Authenticate and obtain JWT Bearer token | Public |
-| **Auth** | `GET /api/v1/auth/me` | Fetch authenticated user profile | Authenticated |
-| **Users** | `GET /api/v1/agents` | List active support agents | Staff |
-| **Tickets** | `GET /api/v1/tickets` | Specification-filtered ticket list | Authenticated |
-| **Tickets** | `POST /api/v1/tickets` | Create ticket (`IdempotentRequest` protected) | Authenticated |
-| **Tickets** | `GET /api/v1/tickets/{id}` | Retrieve ticket details with relations | Authenticated |
-| **Tickets** | `PUT /api/v1/tickets/{id}` | Update ticket metadata | Staff / Owner |
-| **Lifecycle** | `POST /api/v1/tickets/{id}/transition` | State pattern status transition | Staff |
-| **Lifecycle** | `POST /api/v1/tickets/{id}/resolve` | Resolve ticket with notes | Staff |
-| **Lifecycle** | `POST /api/v1/tickets/{id}/close` | Close ticket | Staff / Owner |
-| **Lifecycle** | `POST /api/v1/tickets/{id}/reopen` | Reopen resolved/closed ticket | Staff / Owner |
-| **Assignment**| `POST /api/v1/tickets/{id}/assign` | Strategy or manual agent assignment | Staff |
-| **Routing** | `POST /api/v1/tickets/{id}/route` | Chain of Responsibility routing pipeline | Staff |
-| **Messages** | `GET /api/v1/tickets/{id}/messages` | List conversation messages | Authenticated |
-| **Messages** | `POST /api/v1/tickets/{id}/messages` | Post reply or internal staff note | Authenticated |
-| **Attachments**| `POST /api/v1/attachments/chunk/init` | Chunked multi-part upload initialization | Authenticated |
-| **Attachments**| `GET /api/v1/attachments/{id}/view` | Stream attachment preview / download | Authenticated |
-| **Realtime** | `POST /broadcasting/auth` | Laravel Reverb WebSocket channel authentication | Authenticated |
-| **Audit** | `GET /api/v1/tickets/{id}/status-history` | Ticket status progression timeline | Authenticated |
-| **Audit** | `GET /api/v1/tickets/{id}/audit-logs` | Ticket-level mutation audit diffs | Staff |
-| **Audit** | `GET /api/v1/audit-logs` | Browse global system audit trail | Admin |
+  --------------------------------------------------------------------------------------------------------
+  Resource          Method & Path                               Description              Access
+  ----------------- ------------------------------------------- ------------------------ -----------------
+  **Auth**          `POST /api/v1/auth/register`                Register customer or     Public
+                                                                agent account            
 
-👉 *Full specifications, query filters, and sample JSON payloads: **[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)***
+  **Auth**          `POST /api/v1/auth/login`                   Authenticate and obtain  Public
+                                                                JWT Bearer token         
 
-The API collection for this project is committed directly to the repository. You can download or import the file into Postman using the link below:
+  **Auth**          `GET /api/v1/auth/me`                       Fetch authenticated user Authenticated
+                                                                profile                  
+
+  **Users**         `GET /api/v1/agents`                        List active support      Staff
+                                                                agents                   
+
+  **Tickets**       `GET /api/v1/tickets`                       Specification-filtered   Authenticated
+                                                                ticket list              
+
+  **Tickets**       `POST /api/v1/tickets`                      Create ticket            Authenticated
+                                                                (`IdempotentRequest`     
+                                                                protected)               
+
+  **Tickets**       `GET /api/v1/tickets/{id}`                  Retrieve ticket details  Authenticated
+                                                                with relations           
+
+  **Tickets**       `PUT /api/v1/tickets/{id}`                  Update ticket metadata   Staff / Owner
+
+  **Lifecycle**     `POST /api/v1/tickets/{id}/transition`      State pattern status     Staff
+                                                                transition               
+
+  **Lifecycle**     `POST /api/v1/tickets/{id}/resolve`         Resolve ticket with      Staff
+                                                                notes                    
+
+  **Lifecycle**     `POST /api/v1/tickets/{id}/close`           Close ticket             Staff / Owner
+
+  **Lifecycle**     `POST /api/v1/tickets/{id}/reopen`          Reopen resolved/closed   Staff / Owner
+                                                                ticket                   
+
+  **Assignment**    `POST /api/v1/tickets/{id}/assign`          Strategy or manual agent Staff
+                                                                assignment               
+
+  **Routing**       `POST /api/v1/tickets/{id}/route`           Chain of Responsibility  Staff
+                                                                routing pipeline         
+
+  **Messages**      `GET /api/v1/tickets/{id}/messages`         List conversation        Authenticated
+                                                                messages                 
+
+  **Messages**      `POST /api/v1/tickets/{id}/messages`        Post reply or internal   Authenticated
+                                                                staff note               
+
+  **Attachments**   `POST /api/v1/attachments/chunk/init`       Chunked multi-part       Authenticated
+                                                                upload initialization    
+
+  **Attachments**   `GET /api/v1/attachments/{id}/view`         Stream attachment        Authenticated
+                                                                preview / download       
+
+  **Realtime**      `POST /broadcasting/auth`                   Laravel Reverb WebSocket Authenticated
+                                                                channel authentication   
+
+  **Audit**         `GET /api/v1/tickets/{id}/status-history`   Ticket status            Authenticated
+                                                                progression timeline     
+
+  **Audit**         `GET /api/v1/tickets/{id}/audit-logs`       Ticket-level mutation    Staff
+                                                                audit diffs              
+
+  **Audit**         `GET /api/v1/audit-logs`                    Browse global system     Admin
+                                                                audit trail              
+  --------------------------------------------------------------------------------------------------------
+
+👉 *Full specifications, query filters, and sample JSON payloads:
+**[`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md)***
+
+The API collection for this project is committed directly to the
+repository. You can download or import the file into Postman using the
+link below:
 
 👉 [Download Postman Collection](storage/postman/api_collection.json)
 
----
+------------------------------------------------------------------------
 
 ## Testing & Quality Assurance
 
-The application includes a comprehensive automated test suite testing domain logic, pattern invariants, API contracts, authorization policies, concurrency, and queue jobs.
+The application includes a comprehensive automated test suite testing
+domain logic, pattern invariants, API contracts, authorization policies,
+concurrency, and queue jobs.
 
-```bash
+``` bash
 # Run all automated tests in parallel
 php artisan test --parallel
 
@@ -710,26 +1356,52 @@ php artisan test --parallel
 ```
 
 ### Test Suite Highlights
-- **130+ Tests, 699+ Assertions** across Unit and Feature test suites.
-- **Patterns Test Suite (`tests/Feature/Patterns/`):** Full verification of State transitions, Strategy assignments, Chain of Responsibility routing, Command actions, Decorator pipeline, Events/Observers, and Specifications.
-- **Idempotency Test Suite (`tests/Feature/Idempotency/`):** Tests replay caching, canonical hashing, distributed lock timeouts, and `IdempotencyInFlightException` handling.
-- **Authorization Test Suite (`tests/Feature/Authorization/`):** Tests cross-tenant boundaries, role gates, and policy permissions.
-- **Queue & Mail Test Suite (`tests/Feature/Jobs/`, `tests/Feature/Notifications/`):** Tests background jobs, unique job locks, mailables, and multi-stakeholder notification delivery.
 
----
+-   **106+ Tests, 500+ Assertions** across Unit and Feature test suites.
+-   **Patterns Test Suite (`tests/Feature/Patterns/`):** Full
+    verification of State transitions, Strategy assignments, Chain of
+    Responsibility routing, Command actions, Decorator pipeline,
+    Events/Observers, and Specifications.
+-   **Idempotency Test Suite (`tests/Feature/Idempotency/`):** Tests
+    replay caching, canonical hashing, distributed lock timeouts, and
+    `IdempotencyInFlightException` handling.
+-   **Authorization Test Suite (`tests/Feature/Authorization/`):** Tests
+    cross-tenant boundaries, role gates, and policy permissions.
+-   **Queue & Mail Test Suite (`tests/Feature/Jobs/`,
+    `tests/Feature/Notifications/`):** Tests background jobs, unique job
+    locks, mailables, and multi-stakeholder notification delivery.
+
+------------------------------------------------------------------------
 
 ## Documentation Index
 
-Detailed architectural deep-dives and design specifications are maintained in the [`docs/`](docs/) directory:
+Detailed architectural deep-dives and design specifications are
+maintained in the [`docs/`](docs/) directory:
 
-- [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — Comprehensive REST API endpoint reference, request/response JSON schemas, and query filters.
-- [`docs/TICKET_ATTACHMENTS.md`](docs/TICKET_ATTACHMENTS.md) — Multi-part chunked upload architecture, size constraints, exponential backoff retries, local/S3 storage, and secure blob streaming.
-- [`docs/REVERB_BROADCASTING.md`](docs/REVERB_BROADCASTING.md) — Real-time WebSocket broadcasting with Laravel Reverb, Redis Pub/Sub, JWT channel auth, presence tracking, and React Echo integration.
-- [`docs/PROJECT.md`](docs/PROJECT.md) — Product requirements, user personas, and scope.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — System architecture, delivery layers, and multi-tenancy roadmap.
-- [`docs/DDD_ARCHITECTURE_GUIDE.md`](docs/DDD_ARCHITECTURE_GUIDE.md) — Comprehensive guide on DDD Bounded Contexts, domain service providers, and directory structures.
-- [`docs/DATABASE.md`](docs/DATABASE.md) — Relational database schema, table definitions, and indexing strategy.
-- [`docs/PATTERNS.md`](docs/PATTERNS.md) — Architectural pattern catalog with code examples and implementations.
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — Architecture Decision Records (ADRs).
-- [`docs/IDEMPOTENCY_IMPLEMENTATION_NOTES.md`](docs/IDEMPOTENCY_IMPLEMENTATION_NOTES.md) — Idempotency subsystem architecture and concurrency model.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — Feature progress, completed milestones, and future phases.
+-   [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) --- Comprehensive
+    REST API endpoint reference, request/response JSON schemas, and
+    query filters.
+-   [`docs/TICKET_ATTACHMENTS.md`](docs/TICKET_ATTACHMENTS.md) ---
+    Multi-part chunked upload architecture, size constraints,
+    exponential backoff retries, local/S3 storage, and secure blob
+    streaming.
+-   [`docs/REVERB_BROADCASTING.md`](docs/REVERB_BROADCASTING.md) ---
+    Real-time WebSocket broadcasting with Laravel Reverb, Redis Pub/Sub,
+    JWT channel auth, presence tracking, and React Echo integration.
+-   [`docs/PROJECT.md`](docs/PROJECT.md) --- Product requirements, user
+    personas, and scope.
+-   [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) --- System
+    architecture, delivery layers, and multi-tenancy roadmap.
+-   [`docs/DDD_ARCHITECTURE_GUIDE.md`](docs/DDD_ARCHITECTURE_GUIDE.md)
+    --- Comprehensive guide on DDD Bounded Contexts, domain service
+    providers, and directory structures.
+-   [`docs/DATABASE.md`](docs/DATABASE.md) --- Relational database
+    schema, table definitions, and indexing strategy.
+-   [`docs/PATTERNS.md`](docs/PATTERNS.md) --- Architectural pattern
+    catalog with code examples and implementations.
+-   [`docs/DECISIONS.md`](docs/DECISIONS.md) --- Architecture Decision
+    Records (ADRs).
+-   [`docs/IDEMPOTENCY_IMPLEMENTATION_NOTES.md`](docs/IDEMPOTENCY_IMPLEMENTATION_NOTES.md)
+    --- Idempotency subsystem architecture and concurrency model.
+-   [`docs/ROADMAP.md`](docs/ROADMAP.md) --- Feature progress, completed
+    milestones, and future phases.
