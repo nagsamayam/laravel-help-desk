@@ -9,7 +9,6 @@ use App\Infrastructure\Notifications\Adapters\TwilioSmsAdapter;
 use App\Infrastructure\Notifications\LoggingNotificationSenderDecorator;
 use App\Infrastructure\Notifications\MetricsNotificationSenderDecorator;
 use App\Infrastructure\Notifications\NotificationManager;
-use App\Infrastructure\Notifications\NotificationSenderInterface;
 use App\Infrastructure\Notifications\RetryNotificationSenderDecorator;
 use App\Infrastructure\Notifications\ThirdParty\SendGridClient;
 use App\Infrastructure\Notifications\ThirdParty\SlackWebhookClient;

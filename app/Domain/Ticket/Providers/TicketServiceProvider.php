@@ -12,11 +12,28 @@ use App\Domain\Ticket\Policies\CategoryPolicy;
 use App\Domain\Ticket\Policies\TicketMessagePolicy;
 use App\Domain\Ticket\Policies\TicketPolicy;
 use App\Domain\Ticket\Policies\TicketStatusHistoryPolicy;
+use App\Domain\Ticket\SLA\Contracts\SlaPolicy;
+use App\Domain\Ticket\SLA\Policies\DefaultSlaPolicy;
+use App\Domain\Ticket\SLA\Policies\VipCustomerSlaDecorator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Override;
+use UrgentTicketSlaDecorator;
 
 final class TicketServiceProvider extends ServiceProvider
 {
+    #[Override]
+    public function register()
+    {
+        $this->app->singleton(SlaPolicy::class, function () {
+            return new VipCustomerSlaDecorator(
+                new UrgentTicketSlaDecorator(
+                    new DefaultSlaPolicy
+                )
+            );
+        });
+    }
+
     /**
      * Bootstrap domain services and policies.
      */

@@ -33,6 +33,8 @@ class User extends Authenticatable implements JWTSubject
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    private const array VIP_EMAIL_DOMAINS = ['vip.com', 'enterprise.com', 'partner.org'];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -116,5 +118,16 @@ class User extends Authenticatable implements JWTSubject
     public function hasRole(Role $role): bool
     {
         return $this->role === $role;
+    }
+
+    public function isVip(): bool
+    {
+        foreach (self::VIP_EMAIL_DOMAINS as $domain) {
+            if (Str::endsWith($this->email, '@'.ltrim($domain, '@'))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
