@@ -197,6 +197,8 @@ DB_PORT=3306
 DB_DATABASE=laravel_help_desk
 DB_USERNAME=root
 DB_PASSWORD=
+# for docker
+DB_ROOT_PASSWORD=
 
 REDIS_CLIENT=phpredis
 REDIS_HOST=127.0.0.1
