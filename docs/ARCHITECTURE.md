@@ -73,6 +73,8 @@ Each domain context registers its own policies and event listeners via **Domain 
 Technical mechanisms that support domain workflows:
 - **`Infrastructure/Idempotency/`:** Manages distributed concurrency locks, replay caching, request fingerprinting, and transactional key persistence.
 - **`Infrastructure/Notifications/`:** Provides the `NotificationSenderInterface` contract, mail transport via `EmailNotificationSender`, and the decorator chain (`LoggingNotificationSenderDecorator`, `MetricsNotificationSenderDecorator`, `RetryNotificationSenderDecorator`).
+- **`Infrastructure/Broadcasting/`:** Real-time WebSocket event dispatching with Laravel Reverb, Redis queue transport, and JWT channel authorization. See [Real-Time Broadcasting Subsystem](REVERB_BROADCASTING.md).
+- **`Infrastructure/Storage/` (Attachments):** Multi-part chunked streaming uploader, local filesystem persistence, and AWS S3 pre-signed URL generation. See [Ticket Attachment Subsystem](TICKET_ATTACHMENTS.md).
 
 ### 4. Background Queues & Asynchronous Workers
 - **Redis Queue Engine:** Decouples expensive operations (emails, background SLA escalations, auto-closures) from the HTTP request cycle.

@@ -285,6 +285,9 @@ All API endpoints are versioned under `/api/v1` and return standardized JSON env
 | **Routing** | `POST /api/v1/tickets/{id}/route` | Chain of Responsibility routing pipeline | Staff |
 | **Messages** | `GET /api/v1/tickets/{id}/messages` | List conversation messages | Authenticated |
 | **Messages** | `POST /api/v1/tickets/{id}/messages` | Post reply or internal staff note | Authenticated |
+| **Attachments**| `POST /api/v1/attachments/chunk/init` | Chunked multi-part upload initialization | Authenticated |
+| **Attachments**| `GET /api/v1/attachments/{id}/view` | Stream attachment preview / download | Authenticated |
+| **Realtime** | `POST /broadcasting/auth` | Laravel Reverb WebSocket channel authentication | Authenticated |
 | **Audit** | `GET /api/v1/tickets/{id}/status-history` | Ticket status progression timeline | Authenticated |
 | **Audit** | `GET /api/v1/tickets/{id}/audit-logs` | Ticket-level mutation audit diffs | Staff |
 | **Audit** | `GET /api/v1/audit-logs` | Browse global system audit trail | Admin |
@@ -326,6 +329,8 @@ php artisan test --parallel
 Detailed architectural deep-dives and design specifications are maintained in the [`docs/`](docs/) directory:
 
 - [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — Comprehensive REST API endpoint reference, request/response JSON schemas, and query filters.
+- [`docs/TICKET_ATTACHMENTS.md`](docs/TICKET_ATTACHMENTS.md) — Multi-part chunked upload architecture, size constraints, exponential backoff retries, local/S3 storage, and secure blob streaming.
+- [`docs/REVERB_BROADCASTING.md`](docs/REVERB_BROADCASTING.md) — Real-time WebSocket broadcasting with Laravel Reverb, Redis Pub/Sub, JWT channel auth, presence tracking, and React Echo integration.
 - [`docs/PROJECT.md`](docs/PROJECT.md) — Product requirements, user personas, and scope.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — System architecture, delivery layers, and multi-tenancy roadmap.
 - [`docs/DDD_ARCHITECTURE_GUIDE.md`](docs/DDD_ARCHITECTURE_GUIDE.md) — Comprehensive guide on DDD Bounded Contexts, domain service providers, and directory structures.

@@ -284,3 +284,84 @@ All API endpoints are versioned under `/api/v1` and return standardized JSON env
   - `auditable_id` (`string`): Filter by target resource ID
   - `date_from` (`string`): YYYY-MM-DD
   - `date_to` (`string`): YYYY-MM-DD
+
+---
+
+### 8. Ticket Attachments & Chunked Uploads
+
+For in-depth architecture details and constraints, see [Ticket Attachment Subsystem](TICKET_ATTACHMENTS.md).
+
+#### Direct Single-File Upload
+- **Method / Path:** `POST /api/v1/attachments/upload`
+- **Access:** Authenticated
+- **Content-Type:** `multipart/form-data`
+- **Payload:** `file` (Binary file <= 5 MB; PDF, PNG, JPEG)
+
+#### Initialize Chunked Upload
+- **Method / Path:** `POST /api/v1/attachments/chunk/init`
+- **Access:** Authenticated
+- **Request Body:**
+  ```json
+  {
+    "file_name": "server_diagnostics.pdf",
+    "file_size": 4194304,
+    "mime_type": "application/pdf",
+    "total_chunks": 4
+  }
+  ```
+
+#### Upload Chunk Slice
+- **Method / Path:** `POST /api/v1/attachments/chunk`
+- **Access:** Authenticated
+- **Content-Type:** `multipart/form-data`
+- **Payload:** `upload_id` (string), `chunk_index` (integer), `chunk` (binary blob)
+
+#### Complete & Assemble Chunked Upload
+- **Method / Path:** `POST /api/v1/attachments/chunk/complete`
+- **Access:** Authenticated
+- **Request Body:**
+  ```json
+  {
+    "upload_id": "b7d91e6b-74df-4122-8356-834c56be6fa0"
+  }
+  ```
+
+#### Generate S3 Pre-signed Upload URL
+- **Method / Path:** `POST /api/v1/attachments/presigned-url`
+- **Access:** Authenticated
+- **Request Body:**
+  ```json
+  {
+    "file_name": "error_capture.png",
+    "file_size": 1048576,
+    "mime_type": "image/png"
+  }
+  ```
+
+#### View / Preview Attachment Inline
+- **Method / Path:** `GET /api/v1/attachments/{id}/view`
+- **Access:** Authenticated (Owner, Assigned Agent, Admin)
+- **Response:** Raw binary file with `Content-Disposition: inline`
+
+#### Download Attachment
+- **Method / Path:** `GET /api/v1/attachments/{id}/download`
+- **Access:** Authenticated (Owner, Assigned Agent, Admin)
+- **Response:** Raw binary file with `Content-Disposition: attachment`
+
+---
+
+### 9. Real-Time Broadcasting & WebSockets
+
+For full WebSocket channels, events, and React Echo setup, see [Broadcasting Subsystem](REVERB_BROADCASTING.md).
+
+#### Authenticate WebSocket Channel
+- **Method / Path:** `POST /broadcasting/auth`
+- **Access:** Authenticated (`Bearer <jwt_token>`)
+- **Headers:** `Authorization: Bearer <jwt_token>`
+- **Request Body:**
+  ```json
+  {
+    "socket_id": "12345.67890",
+    "channel_name": "presence-tickets.42"
+  }
+  ```

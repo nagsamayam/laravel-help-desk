@@ -66,6 +66,8 @@ The application is fully operational as a **single-tenant HelpDesk** with comple
 - [x] **Transactional Email Notifications:** Responsive Blade mailables with logging/metrics/retry decorators and stakeholder notification routing.
 - [x] **Asynchronous Background Queues:** Queued event listeners, unique jobs (`ShouldBeUnique`), concurrency locks (`WithoutOverlapping`), and scheduled maintenance CLI commands.
 - [x] **React 19 SPA Frontend:** Vite, Tailwind CSS v4, shadcn/ui components, TanStack React Query v5, Zustand state store, and Lucide React icons.
+- [x] **Ticket Attachments & Chunked Uploads:** Multi-file chunked upload subsystem (max 5 files, 5 MB each, 25 MB cumulative, PDF/PNG/JPEG), exponential backoff network retries, local storage, AWS S3 pre-signed URLs, in-app preview and secure blob streaming. (See [Ticket Attachments](TICKET_ATTACHMENTS.md))
+- [x] **Real-Time WebSocket Broadcasting (Laravel Reverb):** Instant event broadcasting (`ticket.created`, `ticket.status.changed`, `ticket.assigned`, `ticket.message.added`), agent collision detection, presence tracking, and real-time Activity & Notifications drawer. (See [Reverb Broadcasting](REVERB_BROADCASTING.md))
 - [x] **Seeders & Test Data:** Realistic database seeders (`UserSeeder`, `CategorySeeder`, `TicketSeeder`) for development and testing.
 - [x] **Automated Test Suite:** 106+ unit and feature tests covering all patterns, APIs, authorization, and background jobs.
 

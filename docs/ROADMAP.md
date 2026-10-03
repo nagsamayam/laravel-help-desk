@@ -76,22 +76,37 @@
 - [x] Full UI workflows: ticket list with quick filters, ticket creation modal, state machine dialogs, assignment selectors, conversation timeline with internal note toggle, status progression visualizer, and JSON audit diff explorer
 - [x] Axios client with automated UUIDv4 `Idempotency-Key` headers and backoff retry interceptor
 
-## Phase 10 — Seeders & Comprehensive Test Suite
+## Phase 10 — Ticket Attachments & Chunked Uploads
+- [x] Multi-file attachment system (max 5 files, 5 MB/file, 25 MB total, PDF/PNG/JPEG)
+- [x] Resilient chunked uploader with exponential backoff retries on transient network disconnects
+- [x] Local storage persistence and AWS S3 pre-signed upload URL generator
+- [x] Authenticated inline preview modal and secure blob download streaming
+- [x] Role-based attachment policy authorization (`TicketAttachmentPolicy`)
+
+## Phase 11 — Real-Time WebSocket Broadcasting (Laravel Reverb)
+- [x] Laravel Reverb WebSocket server integration with Redis Pub/Sub transport
+- [x] JWT Bearer channel authentication against `/broadcasting/auth`
+- [x] Domain events broadcasting (`ticket.created`, `ticket.status.changed`, `ticket.assigned`, `ticket.message.added`)
+- [x] Presence channels with active viewer tracking and live Agent Collision Warning banners
+- [x] React 19 Laravel Echo client integration (`use-broadcasting.js`, `use-ticket-realtime.js`)
+- [x] Real-time Broadcast Activity & Notifications Drawer with raw JSON payload explorer
+
+## Phase 12 — Seeders & Comprehensive Test Suite
 - [x] Deterministic seed accounts for Admins, Agents, and Customers (`UserSeeder`, `CategorySeeder`, `TicketSeeder`, `DatabaseSeeder`)
-- [x] 106+ automated tests and 500+ assertions with Pest / PHPUnit
+- [x] 110+ automated tests and 500+ assertions with Pest / PHPUnit
 - [x] Laravel Pint code style compliance
 
 ---
 
 ## Future Milestones
 
-### Phase 11 — AI Integration (Laravel AI SDK)
+### Phase 13 — AI Integration (Laravel AI SDK)
 - [ ] Automated ticket categorization and priority suggestion
 - [ ] Ticket thread summarization for agents
 - [ ] Smart reply suggestions based on knowledge base articles
 - [ ] RAG (Retrieval-Augmented Generation) search on support documentation
 
-### Phase 12 — Multi-Tenant SaaS
+### Phase 14 — Multi-Tenant SaaS
 - [ ] Tenant model and tenant database scoping
 - [ ] Custom domain mapping and white-labeling
 - [ ] Subscription tiers, quotas, and billing integration (Stripe / LemonSqueezy)
