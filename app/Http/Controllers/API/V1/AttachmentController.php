@@ -29,7 +29,7 @@ final class AttachmentController extends Controller
     {
         $request->validate([
             'filename' => ['required', 'string', 'max:255'],
-            'file_size' => ['required', 'integer', 'min:1', 'max:'.AttachmentService::MAX_FILE_SIZE_BYTES],
+            'file_size' => ['required', 'integer', 'min:1', 'max:' . AttachmentService::MAX_FILE_SIZE_BYTES],
             'mime_type' => ['required', 'string'],
             'total_chunks' => ['required', 'integer', 'min:1', 'max:500'],
         ]);
@@ -120,7 +120,7 @@ final class AttachmentController extends Controller
     {
         $request->validate([
             'filename' => ['required', 'string', 'max:255'],
-            'file_size' => ['required', 'integer', 'min:1', 'max:'.AttachmentService::MAX_FILE_SIZE_BYTES],
+            'file_size' => ['required', 'integer', 'min:1', 'max:' . AttachmentService::MAX_FILE_SIZE_BYTES],
             'mime_type' => ['required', 'string'],
         ]);
 
@@ -144,7 +144,7 @@ final class AttachmentController extends Controller
         $request->validate([
             'file_key' => ['required', 'string'],
             'original_name' => ['required', 'string', 'max:255'],
-            'file_size' => ['required', 'integer', 'min:1', 'max:'.AttachmentService::MAX_FILE_SIZE_BYTES],
+            'file_size' => ['required', 'integer', 'min:1', 'max:' . AttachmentService::MAX_FILE_SIZE_BYTES],
             'mime_type' => ['required', 'string'],
         ]);
 

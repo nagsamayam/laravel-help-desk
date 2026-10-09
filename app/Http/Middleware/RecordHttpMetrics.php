@@ -22,23 +22,37 @@ final class RecordHttpMetrics
 
     public function handle(Request $request, Closure $next): mixed
     {
+        // Never instrument the metrics endpoint itself.
         if ($request->is('metrics')) {
             return $next($request);
         }
 
         $startedAt = hrtime(true);
         $method = strtoupper($request->method());
+
+        // At this point Laravel may not have resolved the route yet.
+        // Use a safe temporary label for the in-flight metric.
         $route = $this->routeName($request);
 
         $this->metrics->incrementInFlight($method, $route);
 
+        $statusCode = 500;
+
         try {
             $response = $next($request);
+
             $statusCode = $response->getStatusCode();
+
+            // Laravel has now dispatched the request, so the route is available.
+            $route = $this->routeName($request);
 
             return $response;
         } catch (Throwable $exception) {
             $statusCode = $this->statusCodeForException($exception);
+
+            // The route may still be available for exceptions.
+            $route = $this->routeName($request);
+
             throw $exception;
         } finally {
             $durationSeconds = (hrtime(true) - $startedAt) / 1_000_000_000;
@@ -47,7 +61,7 @@ final class RecordHttpMetrics
                 $this->metrics->recordHttpRequest(
                     method: $method,
                     route: $route,
-                    statusCode: $statusCode ?? 500,
+                    statusCode: $statusCode,
                     durationSeconds: $durationSeconds,
                 );
             } finally {
@@ -63,13 +77,11 @@ final class RecordHttpMetrics
         if ($route !== null) {
             $uri = $route->uri();
 
-            if ($uri !== '') {
+            if ($uri !== '' && $uri !== '{fallbackPlaceholder}') {
                 return $uri;
             }
         }
 
-        // Avoid using the raw URL as a metric label because IDs/query strings
-        // can create unbounded Prometheus cardinality.
         return 'unmatched';
     }
 
