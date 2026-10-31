@@ -1221,3 +1221,12 @@ Laravel
 ```
 
 This gives the project a practical monitoring setup similar to what would be expected in a production-oriented engineering environment.
+
+
+docker exec -it pmm-client pmm-admin add mysql \
+  --username=root \
+  --password=Welcome123@ \
+  --host=mysql \
+  --port=3306 \
+  --query-source=slowlog \
+  local-docker-mysql

@@ -399,7 +399,7 @@ final class IdempotencyManager
 
         if (array_is_list($value)) {
             return array_map(
-                fn (mixed $item): mixed => $this->canonicalize($item),
+                fn(mixed $item): mixed => $this->canonicalize($item),
                 $value,
             );
         }
