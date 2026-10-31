@@ -14,9 +14,6 @@ use App\Domain\Ticket\Policies\TicketAttachmentPolicy;
 use App\Domain\Ticket\Policies\TicketMessagePolicy;
 use App\Domain\Ticket\Policies\TicketPolicy;
 use App\Domain\Ticket\Policies\TicketStatusHistoryPolicy;
-use App\Domain\Ticket\Repository\Contracts\TicketRepositoryInterface;
-use App\Domain\Ticket\Repository\Decorators\CachingTicketRepository;
-use App\Domain\Ticket\Repository\SqlTicketRepository;
 use App\Domain\Ticket\SLA\Contracts\SlaPolicy;
 use App\Domain\Ticket\SLA\Policies\DefaultSlaPolicy;
 use App\Domain\Ticket\SLA\Policies\VipCustomerSlaDecorator;
@@ -35,17 +32,6 @@ final class TicketServiceProvider extends ServiceProvider
                 new UrgentTicketSlaDecorator(
                     new DefaultSlaPolicy
                 )
-            );
-        });
-
-        $this->app->bind(TicketRepositoryInterface::class, function ($app) {
-            // 1. Create the core instance
-            $baseRepo = new SqlTicketRepository;
-
-            // 2. Wrap it with the caching decorator layer dynamically
-            return new CachingTicketRepository(
-                $baseRepo,
-                $app->make('cache.store')
             );
         });
     }
