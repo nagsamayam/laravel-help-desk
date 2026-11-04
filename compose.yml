@@ -71,10 +71,10 @@ services:
       - PMM_AGENT_SERVER_USERNAME=admin
       - PMM_AGENT_SERVER_PASSWORD=${PMM_AGENT_SERVER_PASSWORD}
       - PMM_AGENT_SERVER_INSECURE_TLS=true
-      
+
       # Automatically initialize PMM Agent
       - PMM_AGENT_SETUP=true
-      - PMM_AGENT_SETUP_FORCE=true 
+      - PMM_AGENT_SETUP_FORCE=true
       - PMM_AGENT_SETUP_NODE_NAME=mysql-node
       - PMM_AGENT_SETUP_NODE_TYPE=container
 
@@ -181,6 +181,27 @@ services:
       timeout: 5s
       retries: 20
       start_period: 5s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    container_name: keycloak_app
+    command: start-dev
+    ports:
+      - "9080:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-admin}
+      # Database Connection Settings
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/${DB_KEYCLOCK_DATABASE:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME:-root}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - monitoring
+
 
 volumes:
   mysql_data:
