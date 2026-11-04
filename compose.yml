@@ -202,6 +202,14 @@ services:
     networks:
       - monitoring
 
+  maildev:
+    image: maildev/maildev:latest
+    container_name: maildev_app
+    ports:
+      - "1080:1080" # Web UI
+      - "1025:1025" # SMTP Port
+    networks:
+      - monitoring
 
 volumes:
   mysql_data:
